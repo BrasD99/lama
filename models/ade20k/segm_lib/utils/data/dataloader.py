@@ -89,6 +89,7 @@ def _worker_manager_loop(in_queue, out_queue, done_event, pin_memory, device_id)
         else:
             out_queue.put((idx, batch))
 
+
 numpy_type_map = {
     'float64': torch.DoubleTensor,
     'float32': torch.FloatTensor,
@@ -254,7 +255,8 @@ class DataLoaderIter(object):
             try:
                 return self.data_queue.get(timeout=self.timeout)
             except queue.Empty:
-                raise RuntimeError('DataLoader timed out after {} seconds'.format(self.timeout))
+                raise RuntimeError(
+                    'DataLoader timed out after {} seconds'.format(self.timeout))
         else:
             return self.data_queue.get()
 

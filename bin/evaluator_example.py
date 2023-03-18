@@ -31,22 +31,28 @@ class SimpleImageDataset(Dataset):
 def create_rectangle_mask(height, width):
     mask = np.ones((height, width))
     up_left_corner = width // 4, height // 4
-    down_right_corner = (width - up_left_corner[0] - 1, height - up_left_corner[1] - 1)
-    cv2.rectangle(mask, up_left_corner, down_right_corner, (0, 0, 0), thickness=cv2.FILLED)
+    down_right_corner = (
+        width - up_left_corner[0] - 1, height - up_left_corner[1] - 1)
+    cv2.rectangle(mask, up_left_corner, down_right_corner,
+                  (0, 0, 0), thickness=cv2.FILLED)
     return mask
 
 
 class Model():
     def __call__(self, img_batch, mask_batch):
-        mean = (img_batch * mask_batch[:, None, :, :]).sum(dim=(2, 3)) / mask_batch.sum(dim=(1, 2))[:, None]
-        inpainted = mean[:, :, None, None] * (1 - mask_batch[:, None, :, :]) + img_batch * mask_batch[:, None, :, :]
+        mean = (img_batch * mask_batch[:, None, :, :]
+                ).sum(dim=(2, 3)) / mask_batch.sum(dim=(1, 2))[:, None]
+        inpainted = mean[:, :, None, None] * \
+            (1 - mask_batch[:, None, :, :]) + \
+            img_batch * mask_batch[:, None, :, :]
         return inpainted
 
 
 class SimpleImageSquareMaskDataset(Dataset):
     def __init__(self, dataset):
         self.dataset = dataset
-        self.mask = torch.FloatTensor(create_rectangle_mask(*self.dataset.image_size))
+        self.mask = torch.FloatTensor(
+            create_rectangle_mask(*self.dataset.image_size))
         self.model = Model()
 
     def __getitem__(self, index):

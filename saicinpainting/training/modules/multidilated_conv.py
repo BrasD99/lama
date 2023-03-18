@@ -3,6 +3,7 @@ import torch.nn as nn
 import random
 from ...training.modules.depthwise_sep_conv import DepthWiseSeperableConv
 
+
 class MultidilatedConv(nn.Module):
     def __init__(self, in_dim, out_dim, kernel_size, dilation_num=3, comb_mode='sum', equal_dim=True,
                  shared_weights=False, padding=1, min_dilation=1, shuffle_in_channels=False, use_depthwise=False, **kwargs):
@@ -15,19 +16,22 @@ class MultidilatedConv(nn.Module):
             if equal_dim:
                 assert out_dim % dilation_num == 0
                 out_dims = [out_dim // dilation_num] * dilation_num
-                self.index = sum([[i + j * (out_dims[0]) for j in range(dilation_num)] for i in range(out_dims[0])], [])
+                self.index = sum(
+                    [[i + j * (out_dims[0]) for j in range(dilation_num)] for i in range(out_dims[0])], [])
             else:
-                out_dims = [out_dim // 2 ** (i + 1) for i in range(dilation_num - 1)]
+                out_dims = [out_dim // 2 ** (i + 1)
+                            for i in range(dilation_num - 1)]
                 out_dims.append(out_dim - sum(out_dims))
                 index = []
                 starts = [0] + out_dims[:-1]
-                lengths = [out_dims[i] // out_dims[-1] for i in range(dilation_num)]
+                lengths = [out_dims[i] // out_dims[-1]
+                           for i in range(dilation_num)]
                 for i in range(out_dims[-1]):
                     for j in range(dilation_num):
                         index += list(range(starts[j], starts[j] + lengths[j]))
                         starts[j] += lengths[j]
                 self.index = index
-                assert(len(index) == out_dim)
+                assert (len(index) == out_dim)
             self.out_dims = out_dims
         else:
             self.cat_out = False
@@ -38,7 +42,8 @@ class MultidilatedConv(nn.Module):
                 assert in_dim % dilation_num == 0
                 in_dims = [in_dim // dilation_num] * dilation_num
             else:
-                in_dims = [in_dim // 2 ** (i + 1) for i in range(dilation_num - 1)]
+                in_dims = [in_dim // 2 ** (i + 1)
+                           for i in range(dilation_num - 1)]
                 in_dims.append(in_dim - sum(in_dims))
             self.in_dims = in_dims
             self.cat_in = True
@@ -68,7 +73,8 @@ class MultidilatedConv(nn.Module):
             in_channels_permute = list(range(in_dim))
             random.shuffle(in_channels_permute)
             # save as buffer so it is saved and loaded with checkpoint
-            self.register_buffer('in_channels_permute', torch.tensor(in_channels_permute))
+            self.register_buffer('in_channels_permute',
+                                 torch.tensor(in_channels_permute))
 
     def forward(self, x):
         if self.shuffle_in_channels:

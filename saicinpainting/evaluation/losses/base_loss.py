@@ -181,7 +181,8 @@ class FIDScore(EvaluatorScore):
         activations_pred = torch.cat(activations_pred).cpu().numpy()
         activations_target = torch.cat(activations_target).cpu().numpy()
 
-        total_distance = calculate_frechet_distance(activations_pred, activations_target, eps=self.eps)
+        total_distance = calculate_frechet_distance(
+            activations_pred, activations_target, eps=self.eps)
         total_results = dict(mean=total_distance)
 
         if groups is None:
@@ -221,14 +222,17 @@ class FIDScore(EvaluatorScore):
 class SegmentationAwareScore(EvaluatorScore):
     def __init__(self, weights_path):
         super().__init__()
-        self.segm_network = SegmentationModule(weights_path=weights_path, use_default_normalization=True).eval()
+        self.segm_network = SegmentationModule(
+            weights_path=weights_path, use_default_normalization=True).eval()
         self.target_class_freq_by_image_total = []
         self.target_class_freq_by_image_mask = []
         self.pred_class_freq_by_image_mask = []
 
     def forward(self, pred_batch, target_batch, mask):
-        pred_segm_flat = self.segm_network.predict(pred_batch)[0].view(pred_batch.shape[0], -1).long().detach().cpu().numpy()
-        target_segm_flat = self.segm_network.predict(target_batch)[0].view(pred_batch.shape[0], -1).long().detach().cpu().numpy()
+        pred_segm_flat = self.segm_network.predict(pred_batch)[0].view(
+            pred_batch.shape[0], -1).long().detach().cpu().numpy()
+        target_segm_flat = self.segm_network.predict(target_batch)[0].view(
+            pred_batch.shape[0], -1).long().detach().cpu().numpy()
         mask_flat = (mask.view(mask.shape[0], -1) > 0.5).detach().cpu().numpy()
 
         batch_target_class_freq_total = []
@@ -236,21 +240,29 @@ class SegmentationAwareScore(EvaluatorScore):
         batch_pred_class_freq_mask = []
 
         for cur_pred_segm, cur_target_segm, cur_mask in zip(pred_segm_flat, target_segm_flat, mask_flat):
-            cur_target_class_freq_total = np.bincount(cur_target_segm, minlength=NUM_CLASS)[None, ...]
-            cur_target_class_freq_mask = np.bincount(cur_target_segm[cur_mask], minlength=NUM_CLASS)[None, ...]
-            cur_pred_class_freq_mask = np.bincount(cur_pred_segm[cur_mask], minlength=NUM_CLASS)[None, ...]
+            cur_target_class_freq_total = np.bincount(
+                cur_target_segm, minlength=NUM_CLASS)[None, ...]
+            cur_target_class_freq_mask = np.bincount(
+                cur_target_segm[cur_mask], minlength=NUM_CLASS)[None, ...]
+            cur_pred_class_freq_mask = np.bincount(
+                cur_pred_segm[cur_mask], minlength=NUM_CLASS)[None, ...]
 
-            self.target_class_freq_by_image_total.append(cur_target_class_freq_total)
-            self.target_class_freq_by_image_mask.append(cur_target_class_freq_mask)
+            self.target_class_freq_by_image_total.append(
+                cur_target_class_freq_total)
+            self.target_class_freq_by_image_mask.append(
+                cur_target_class_freq_mask)
             self.pred_class_freq_by_image_mask.append(cur_pred_class_freq_mask)
 
             batch_target_class_freq_total.append(cur_target_class_freq_total)
             batch_target_class_freq_mask.append(cur_target_class_freq_mask)
             batch_pred_class_freq_mask.append(cur_pred_class_freq_mask)
 
-        batch_target_class_freq_total = np.concatenate(batch_target_class_freq_total, axis=0)
-        batch_target_class_freq_mask = np.concatenate(batch_target_class_freq_mask, axis=0)
-        batch_pred_class_freq_mask = np.concatenate(batch_pred_class_freq_mask, axis=0)
+        batch_target_class_freq_total = np.concatenate(
+            batch_target_class_freq_total, axis=0)
+        batch_target_class_freq_mask = np.concatenate(
+            batch_target_class_freq_mask, axis=0)
+        batch_pred_class_freq_mask = np.concatenate(
+            batch_pred_class_freq_mask, axis=0)
         return batch_target_class_freq_total, batch_target_class_freq_mask, batch_pred_class_freq_mask
 
     def reset(self):
@@ -261,7 +273,8 @@ class SegmentationAwareScore(EvaluatorScore):
 
 
 def distribute_values_to_classes(target_class_freq_by_image_mask, values, idx2name):
-    assert target_class_freq_by_image_mask.ndim == 2 and target_class_freq_by_image_mask.shape[0] == values.shape[0]
+    assert target_class_freq_by_image_mask.ndim == 2 and target_class_freq_by_image_mask.shape[
+        0] == values.shape[0]
     total_class_freq = target_class_freq_by_image_mask.sum(0)
     distr_values = (target_class_freq_by_image_mask * values[..., None]).sum(0)
     result = distr_values / (total_class_freq + 1e-3)
@@ -307,9 +320,12 @@ class SegmentationAwarePairwiseScore(SegmentationAwareScore):
             pred_class_freq_by_image_mask = self.pred_class_freq_by_image_mask
             individual_values = self.individual_values
 
-        target_class_freq_by_image_total = np.concatenate(target_class_freq_by_image_total, axis=0)
-        target_class_freq_by_image_mask = np.concatenate(target_class_freq_by_image_mask, axis=0)
-        pred_class_freq_by_image_mask = np.concatenate(pred_class_freq_by_image_mask, axis=0)
+        target_class_freq_by_image_total = np.concatenate(
+            target_class_freq_by_image_total, axis=0)
+        target_class_freq_by_image_mask = np.concatenate(
+            target_class_freq_by_image_mask, axis=0)
+        pred_class_freq_by_image_mask = np.concatenate(
+            pred_class_freq_by_image_mask, axis=0)
         individual_values = np.concatenate(individual_values, axis=0)
 
         total_results = {
@@ -360,17 +376,23 @@ class SegmentationClassStats(SegmentationAwarePairwiseScore):
             target_class_freq_by_image_mask = self.target_class_freq_by_image_mask
             pred_class_freq_by_image_mask = self.pred_class_freq_by_image_mask
 
-        target_class_freq_by_image_total = np.concatenate(target_class_freq_by_image_total, axis=0)
-        target_class_freq_by_image_mask = np.concatenate(target_class_freq_by_image_mask, axis=0)
-        pred_class_freq_by_image_mask = np.concatenate(pred_class_freq_by_image_mask, axis=0)
+        target_class_freq_by_image_total = np.concatenate(
+            target_class_freq_by_image_total, axis=0)
+        target_class_freq_by_image_mask = np.concatenate(
+            target_class_freq_by_image_mask, axis=0)
+        pred_class_freq_by_image_mask = np.concatenate(
+            pred_class_freq_by_image_mask, axis=0)
 
-        target_class_freq_by_image_total_marginal = target_class_freq_by_image_total.sum(0).astype('float32')
+        target_class_freq_by_image_total_marginal = target_class_freq_by_image_total.sum(
+            0).astype('float32')
         target_class_freq_by_image_total_marginal /= target_class_freq_by_image_total_marginal.sum()
 
-        target_class_freq_by_image_mask_marginal = target_class_freq_by_image_mask.sum(0).astype('float32')
+        target_class_freq_by_image_mask_marginal = target_class_freq_by_image_mask.sum(
+            0).astype('float32')
         target_class_freq_by_image_mask_marginal /= target_class_freq_by_image_mask_marginal.sum()
 
-        pred_class_freq_diff = (pred_class_freq_by_image_mask - target_class_freq_by_image_mask).sum(0) / (target_class_freq_by_image_mask.sum(0) + 1e-3)
+        pred_class_freq_diff = (pred_class_freq_by_image_mask - target_class_freq_by_image_mask).sum(
+            0) / (target_class_freq_by_image_mask.sum(0) + 1e-3)
 
         total_results = dict()
         total_results.update({f'total_freq/{self.segm_idx2name[i]}': v
@@ -393,14 +415,16 @@ class SegmentationClassStats(SegmentationAwarePairwiseScore):
             group_target_class_freq_by_image_mask = target_class_freq_by_image_mask[index]
             group_pred_class_freq_by_image_mask = pred_class_freq_by_image_mask[index]
 
-            group_target_class_freq_by_image_total_marginal = group_target_class_freq_by_image_total.sum(0).astype('float32')
+            group_target_class_freq_by_image_total_marginal = group_target_class_freq_by_image_total.sum(
+                0).astype('float32')
             group_target_class_freq_by_image_total_marginal /= group_target_class_freq_by_image_total_marginal.sum()
 
-            group_target_class_freq_by_image_mask_marginal = group_target_class_freq_by_image_mask.sum(0).astype('float32')
+            group_target_class_freq_by_image_mask_marginal = group_target_class_freq_by_image_mask.sum(
+                0).astype('float32')
             group_target_class_freq_by_image_mask_marginal /= group_target_class_freq_by_image_mask_marginal.sum()
 
             group_pred_class_freq_diff = (group_pred_class_freq_by_image_mask - group_target_class_freq_by_image_mask).sum(0) / (
-                    group_target_class_freq_by_image_mask.sum(0) + 1e-3)
+                group_target_class_freq_by_image_mask.sum(0) + 1e-3)
 
             cur_group_results = dict()
             cur_group_results.update({f'total_freq/{self.segm_idx2name[i]}': v
@@ -420,7 +444,8 @@ class SegmentationClassStats(SegmentationAwarePairwiseScore):
 class SegmentationAwareSSIM(SegmentationAwarePairwiseScore):
     def __init__(self, *args, window_size=11, **kwargs):
         super().__init__(*args, **kwargs)
-        self.score_impl = SSIM(window_size=window_size, size_average=False).eval()
+        self.score_impl = SSIM(window_size=window_size,
+                               size_average=False).eval()
 
     def calc_score(self, pred_batch, target_batch, mask):
         return self.score_impl(pred_batch, target_batch).detach().cpu().numpy()
@@ -476,9 +501,12 @@ class SegmentationAwareFID(SegmentationAwarePairwiseScore):
             pred_class_freq_by_image_mask = self.pred_class_freq_by_image_mask
             activation_pairs = self.individual_values
 
-        target_class_freq_by_image_total = np.concatenate(target_class_freq_by_image_total, axis=0)
-        target_class_freq_by_image_mask = np.concatenate(target_class_freq_by_image_mask, axis=0)
-        pred_class_freq_by_image_mask = np.concatenate(pred_class_freq_by_image_mask, axis=0)
+        target_class_freq_by_image_total = np.concatenate(
+            target_class_freq_by_image_total, axis=0)
+        target_class_freq_by_image_mask = np.concatenate(
+            target_class_freq_by_image_mask, axis=0)
+        pred_class_freq_by_image_mask = np.concatenate(
+            pred_class_freq_by_image_mask, axis=0)
         activations_pred, activations_target = zip(*activation_pairs)
         activations_pred = np.concatenate(activations_pred, axis=0)
         activations_target = np.concatenate(activations_target, axis=0)
@@ -511,10 +539,12 @@ class SegmentationAwareFID(SegmentationAwarePairwiseScore):
         return total_results, group_results
 
     def distribute_fid_to_classes(self, class_freq, activations_pred, activations_target):
-        real_fid = calculate_frechet_distance(activations_pred, activations_target, eps=self.eps)
+        real_fid = calculate_frechet_distance(
+            activations_pred, activations_target, eps=self.eps)
 
         fid_no_images = Parallel(n_jobs=self.n_jobs)(
-            delayed(calculade_fid_no_img)(img_i, activations_pred, activations_target, eps=self.eps)
+            delayed(calculade_fid_no_img)(
+                img_i, activations_pred, activations_target, eps=self.eps)
             for img_i in range(activations_pred.shape[0])
         )
         errors = real_fid - fid_no_images
@@ -523,6 +553,8 @@ class SegmentationAwareFID(SegmentationAwarePairwiseScore):
     def _get_activations(self, batch):
         activations = self.model(batch)[0]
         if activations.shape[2] != 1 or activations.shape[3] != 1:
-            activations = F.adaptive_avg_pool2d(activations, output_size=(1, 1))
-        activations = activations.squeeze(-1).squeeze(-1).detach().cpu().numpy()
+            activations = F.adaptive_avg_pool2d(
+                activations, output_size=(1, 1))
+        activations = activations.squeeze(
+            -1).squeeze(-1).detach().cpu().numpy()
         return activations

@@ -16,13 +16,15 @@ def main(args):
     if not args.predictdir.endswith('/'):
         args.predictdir += '/'
 
-    dataset = PrecomputedInpaintingResultsDataset(args.datadir, args.predictdir, **config.dataset_kwargs)
+    dataset = PrecomputedInpaintingResultsDataset(
+        args.datadir, args.predictdir, **config.dataset_kwargs)
 
     os.makedirs(os.path.dirname(args.outpath), exist_ok=True)
 
     for img_i in tqdm.trange(len(dataset)):
         pred_fname = dataset.pred_filenames[img_i]
-        cur_out_fname = os.path.join(args.outpath, pred_fname[len(args.predictdir):])
+        cur_out_fname = os.path.join(
+            args.outpath, pred_fname[len(args.predictdir):])
         os.makedirs(os.path.dirname(cur_out_fname), exist_ok=True)
 
         sample = dataset[img_i]
@@ -35,7 +37,8 @@ def main(args):
                                              sigmaX=args.s, sigmaY=args.s,
                                              borderType=cv2.BORDER_REFLECT)
 
-        cur_res = (1 - mask) * np.transpose(img, (1, 2, 0)) + mask * inpainted_blurred
+        cur_res = (1 - mask) * np.transpose(img, (1, 2, 0)) + \
+            mask * inpainted_blurred
         cur_res = np.clip(cur_res * 255, 0, 255).astype('uint8')
         cur_res = cv2.cvtColor(cur_res, cv2.COLOR_RGB2BGR)
         cv2.imwrite(cur_out_fname, cur_res)
@@ -51,7 +54,9 @@ if __name__ == '__main__':
     aparser.add_argument('predictdir', type=str,
                          help='Path to folder with predicts (e.g. predict_hifill_baseline.py)')
     aparser.add_argument('outpath', type=str, help='Where to put results')
-    aparser.add_argument('-s', type=float, default=0.1, help='Gaussian blur sigma')
-    aparser.add_argument('-k', type=int, default=5, help='Kernel size in gaussian blur')
+    aparser.add_argument('-s', type=float, default=0.1,
+                         help='Gaussian blur sigma')
+    aparser.add_argument('-k', type=int, default=5,
+                         help='Kernel size in gaussian blur')
 
     main(aparser.parse_args())

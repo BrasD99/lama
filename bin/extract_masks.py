@@ -9,15 +9,15 @@ def main(args):
     os.makedirs(args.outdir, exist_ok=True)
 
     src_images = [
-        args.indir+fname for fname in  os.listdir(args.indir)]
+        args.indir+fname for fname in os.listdir(args.indir)]
 
     tgt_masks = [
-        args.outdir+fname[:-4] + f'_mask000.png' 
-            for fname in  os.listdir(args.indir)]
+        args.outdir+fname[:-4] + f'_mask000.png'
+        for fname in os.listdir(args.indir)]
 
     for img_name, msk_name in zip(src_images, tgt_masks):
-        #print(img)
-        #print(msk)
+        # print(img)
+        # print(msk)
 
         image = Image.open(img_name).convert('RGB')
         image = np.transpose(np.array(image), (2, 0, 1))
@@ -26,13 +26,9 @@ def main(args):
 
         print(mask.dtype, mask.shape)
 
-
         Image.fromarray(
-            np.clip(mask[0,:,:] * 255, 0, 255).astype('uint8'),mode='L'
+            np.clip(mask[0, :, :] * 255, 0, 255).astype('uint8'), mode='L'
         ).save(msk_name)
-
-
-
 
     '''
     for infile in src_images:
@@ -53,11 +49,12 @@ def main(args):
     '''
 
 
-
 if __name__ == '__main__':
     import argparse
     aparser = argparse.ArgumentParser()
-    aparser.add_argument('--indir', type=str, help='Path to folder with images')
-    aparser.add_argument('--outdir', type=str, help='Path to folder to store aligned images and masks to')
+    aparser.add_argument('--indir', type=str,
+                         help='Path to folder with images')
+    aparser.add_argument(
+        '--outdir', type=str, help='Path to folder to store aligned images and masks to')
 
     main(aparser.parse_args())

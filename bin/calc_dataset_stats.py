@@ -23,7 +23,8 @@ def main(args):
     known_pixel_distances = []
 
     area_bins_count = np.zeros(args.area_bins)
-    area_bin_titles = [f'{area_bins[i] * 100:.0f}-{area_bins[i + 1] * 100:.0f}' for i in range(args.area_bins)]
+    area_bin_titles = [
+        f'{area_bins[i] * 100:.0f}-{area_bins[i + 1] * 100:.0f}' for i in range(args.area_bins)]
 
     bin2i = [[] for _ in range(args.area_bins)]
 
@@ -38,7 +39,8 @@ def main(args):
         hole_areas.append(hole_area)
         hole_percent = hole_area / full_area
         hole_area_percents.append(hole_percent)
-        bin_i = np.clip(np.searchsorted(area_bins, hole_percent) - 1, 0, len(area_bins_count) - 1)
+        bin_i = np.clip(np.searchsorted(
+            area_bins, hole_percent) - 1, 0, len(area_bins_count) - 1)
         area_bins_count[bin_i] += 1
         bin2i[bin_i].append(i)
 
@@ -71,7 +73,8 @@ Stats by hole area %:
         os.makedirs(bindir, exist_ok=True)
         bin_idx = bin2i[bin_i]
         for sample_i in np.random.choice(bin_idx, size=min(len(bin_idx), args.samples_n), replace=False):
-            save_item_for_vis(dataset[sample_i], os.path.join(bindir, f'{sample_i}.png'))
+            save_item_for_vis(dataset[sample_i], os.path.join(
+                bindir, f'{sample_i}.png'))
 
 
 if __name__ == '__main__':
@@ -83,6 +86,7 @@ if __name__ == '__main__':
     aparser.add_argument('outdir', type=str, help='Where to put results')
     aparser.add_argument('--samples-n', type=int, default=10,
                          help='Number of sample images with masks to copy for visualization for each area bin')
-    aparser.add_argument('--area-bins', type=int, default=10, help='How many area bins to have')
+    aparser.add_argument('--area-bins', type=int, default=10,
+                         help='How many area bins to have')
 
     main(aparser.parse_args())

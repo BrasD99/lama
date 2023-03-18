@@ -29,7 +29,8 @@ class PerceptualLoss(nn.Module):
             if module.__class__.__name__ == 'Sequential':
                 continue
             elif module.__class__.__name__ == 'MaxPool2d':
-                vgg_avg_pooling.append(nn.AvgPool2d(kernel_size=2, stride=2, padding=0))
+                vgg_avg_pooling.append(nn.AvgPool2d(
+                    kernel_size=2, stride=2, padding=0))
             else:
                 vgg_avg_pooling.append(module)
 
@@ -39,7 +40,8 @@ class PerceptualLoss(nn.Module):
         return (x - self.mean_.to(x.device)) / self.std_.to(x.device)
 
     def partial_losses(self, input, target, mask=None):
-        check_and_warn_input_range(target, 0, 1, 'PerceptualLoss target in partial_losses')
+        check_and_warn_input_range(
+            target, 0, 1, 'PerceptualLoss target in partial_losses')
 
         # we expect input and target to be in [0, 1] range
         losses = []
@@ -57,7 +59,8 @@ class PerceptualLoss(nn.Module):
             features_target = layer(features_target)
 
             if layer.__class__.__name__ == 'ReLU':
-                loss = F.mse_loss(features_input, features_target, reduction='none')
+                loss = F.mse_loss(
+                    features_input, features_target, reduction='none')
 
                 if mask is not None:
                     cur_mask = F.interpolate(mask, size=features_input.shape[-2:],
@@ -74,7 +77,8 @@ class PerceptualLoss(nn.Module):
         return torch.stack(losses).sum(dim=0)
 
     def get_global_features(self, input):
-        check_and_warn_input_range(input, 0, 1, 'PerceptualLoss input in get_global_features')
+        check_and_warn_input_range(
+            input, 0, 1, 'PerceptualLoss input in get_global_features')
 
         if self.normalize_inputs:
             features_input = self.do_normalize_inputs(input)

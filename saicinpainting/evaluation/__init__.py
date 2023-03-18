@@ -5,6 +5,7 @@ import torch
 from .evaluator import InpaintingEvaluatorOnline, ssim_fid100_f1, lpips_fid100_f1
 from .losses.base_loss import SSIMScore, LPIPSScore, FIDScore
 
+
 def make_evaluator(kind='default', ssim=True, lpips=True, fid=True, integral_kind=None, **kwargs):
     logging.info(f'Make evaluator {kind}')
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -15,7 +16,7 @@ def make_evaluator(kind='default', ssim=True, lpips=True, fid=True, integral_kin
         metrics['lpips'] = LPIPSScore()
     if fid:
         metrics['fid'] = FIDScore().to(device)
-        
+
     if integral_kind is None:
         integral_func = None
     elif integral_kind == 'ssim_fid100_f1':

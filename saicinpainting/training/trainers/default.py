@@ -18,8 +18,10 @@ def make_constant_area_crop_batch(batch, **kwargs):
     crop_y, crop_x, crop_height, crop_width = make_constant_area_crop_params(img_height=batch['image'].shape[2],
                                                                              img_width=batch['image'].shape[3],
                                                                              **kwargs)
-    batch['image'] = batch['image'][:, :, crop_y : crop_y + crop_height, crop_x : crop_x + crop_width]
-    batch['mask'] = batch['mask'][:, :, crop_y: crop_y + crop_height, crop_x: crop_x + crop_width]
+    batch['image'] = batch['image'][:, :, crop_y: crop_y +
+                                    crop_height, crop_x: crop_x + crop_width]
+    batch['mask'] = batch['mask'][:, :, crop_y: crop_y +
+                                  crop_height, crop_x: crop_x + crop_width]
     return batch
 
 
@@ -31,7 +33,8 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
                  **kwargs):
         super().__init__(*args, **kwargs)
         self.concat_mask = concat_mask
-        self.rescale_size_getter = get_ramp(**rescale_scheduler_kwargs) if rescale_scheduler_kwargs is not None else None
+        self.rescale_size_getter = get_ramp(
+            **rescale_scheduler_kwargs) if rescale_scheduler_kwargs is not None else None
         self.image_to_discriminator = image_to_discriminator
         self.add_noise_kwargs = add_noise_kwargs
         self.noise_fill_hole = noise_fill_hole
@@ -42,16 +45,20 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
 
         self.fake_fakes_proba = fake_fakes_proba
         if self.fake_fakes_proba > 1e-3:
-            self.fake_fakes_gen = FakeFakesGenerator(**(fake_fakes_generator_kwargs or {}))
+            self.fake_fakes_gen = FakeFakesGenerator(
+                **(fake_fakes_generator_kwargs or {}))
 
     def forward(self, batch):
         if self.training and self.rescale_size_getter is not None:
             cur_size = self.rescale_size_getter(self.global_step)
-            batch['image'] = F.interpolate(batch['image'], size=cur_size, mode='bilinear', align_corners=False)
-            batch['mask'] = F.interpolate(batch['mask'], size=cur_size, mode='nearest')
+            batch['image'] = F.interpolate(
+                batch['image'], size=cur_size, mode='bilinear', align_corners=False)
+            batch['mask'] = F.interpolate(
+                batch['mask'], size=cur_size, mode='nearest')
 
         if self.training and self.const_area_crop_kwargs is not None:
-            batch = make_constant_area_crop_batch(batch, **self.const_area_crop_kwargs)
+            batch = make_constant_area_crop_batch(
+                batch, **self.const_area_crop_kwargs)
 
         img = batch['image']
         mask = batch['mask']
@@ -68,11 +75,13 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
             masked_img = torch.cat([masked_img, mask], dim=1)
 
         batch['predicted_image'] = self.generator(masked_img)
-        batch['inpainted'] = mask * batch['predicted_image'] + (1 - mask) * batch['image']
+        batch['inpainted'] = mask * batch['predicted_image'] + \
+            (1 - mask) * batch['image']
 
         if self.fake_fakes_proba > 1e-3:
             if self.training and torch.rand(1).item() < self.fake_fakes_proba:
-                batch['fake_fakes'], batch['fake_fakes_masks'] = self.fake_fakes_gen(img, mask)
+                batch['fake_fakes'], batch['fake_fakes_masks'] = self.fake_fakes_gen(
+                    img, mask)
                 batch['use_fake_fakes'] = True
             else:
                 batch['fake_fakes'] = torch.zeros_like(img)
@@ -101,7 +110,8 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
 
         # vgg-based perceptual loss
         if self.config.losses.perceptual.weight > 0:
-            pl_value = self.loss_pl(predicted_img, img, mask=supervised_mask).sum() * self.config.losses.perceptual.weight
+            pl_value = self.loss_pl(predicted_img, img, mask=supervised_mask).sum(
+            ) * self.config.losses.perceptual.weight
             total_loss = total_loss + pl_value
             metrics['gen_pl'] = pl_value
 
@@ -111,7 +121,8 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
         self.adversarial_loss.pre_generator_step(real_batch=img, fake_batch=predicted_img,
                                                  generator=self.generator, discriminator=self.discriminator)
         discr_real_pred, discr_real_features = self.discriminator(img)
-        discr_fake_pred, discr_fake_features = self.discriminator(predicted_img)
+        discr_fake_pred, discr_fake_features = self.discriminator(
+            predicted_img)
         adv_gen_loss, adv_metrics = self.adversarial_loss.generator_loss(real_batch=img,
                                                                          fake_batch=predicted_img,
                                                                          discr_real_pred=discr_real_pred,
@@ -123,7 +134,8 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
 
         # feature matching
         if self.config.losses.feature_matching.weight > 0:
-            need_mask_in_fm = OmegaConf.to_container(self.config.losses.feature_matching).get('pass_mask', False)
+            need_mask_in_fm = OmegaConf.to_container(
+                self.config.losses.feature_matching).get('pass_mask', False)
             mask_for_fm = supervised_mask if need_mask_in_fm else None
             fm_value = feature_matching_loss(discr_fake_features, discr_real_features,
                                              mask=mask_for_fm) * self.config.losses.feature_matching.weight
@@ -144,8 +156,10 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
         predicted_img = batch[self.image_to_discriminator].detach()
         self.adversarial_loss.pre_discriminator_step(real_batch=batch['image'], fake_batch=predicted_img,
                                                      generator=self.generator, discriminator=self.discriminator)
-        discr_real_pred, discr_real_features = self.discriminator(batch['image'])
-        discr_fake_pred, discr_fake_features = self.discriminator(predicted_img)
+        discr_real_pred, discr_real_features = self.discriminator(
+            batch['image'])
+        discr_fake_pred, discr_fake_features = self.discriminator(
+            predicted_img)
         adv_discr_loss, adv_metrics = self.adversarial_loss.discriminator_loss(real_batch=batch['image'],
                                                                                fake_batch=predicted_img,
                                                                                discr_real_pred=discr_real_pred,
@@ -154,7 +168,6 @@ class DefaultInpaintingTrainingModule(BaseInpaintingTrainingModule):
         total_loss = total_loss + adv_discr_loss
         metrics['discr_adv'] = adv_discr_loss
         metrics.update(add_prefix_to_keys(adv_metrics, 'adv_'))
-
 
         if batch.get('use_fake_fakes', False):
             fake_fakes = batch['fake_fakes']

@@ -13,7 +13,8 @@ class SSIM(torch.nn.Module):
         self.window_size = window_size
         self.size_average = size_average
         self.channel = 1
-        self.register_buffer('window', self._create_window(window_size, self.channel))
+        self.register_buffer(
+            'window', self._create_window(window_size, self.channel))
 
     def forward(self, img1, img2):
         assert len(img1.shape) == 4
@@ -41,12 +42,15 @@ class SSIM(torch.nn.Module):
 
     def _create_window(self, window_size, channel):
         _1D_window = self._gaussian(window_size, 1.5).unsqueeze(1)
-        _2D_window = _1D_window.mm(_1D_window.t()).float().unsqueeze(0).unsqueeze(0)
+        _2D_window = _1D_window.mm(
+            _1D_window.t()).float().unsqueeze(0).unsqueeze(0)
         return _2D_window.expand(channel, 1, window_size, window_size).contiguous()
 
     def _ssim(self, img1, img2, window, window_size, channel, size_average=True):
-        mu1 = F.conv2d(img1, window, padding=(window_size // 2), groups=channel)
-        mu2 = F.conv2d(img2, window, padding=(window_size // 2), groups=channel)
+        mu1 = F.conv2d(img1, window, padding=(
+            window_size // 2), groups=channel)
+        mu2 = F.conv2d(img2, window, padding=(
+            window_size // 2), groups=channel)
 
         mu1_sq = mu1.pow(2)
         mu2_sq = mu2.pow(2)

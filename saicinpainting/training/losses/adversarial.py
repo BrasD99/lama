@@ -65,18 +65,23 @@ class BaseAdversarialLoss:
             if self.mask_scale_mode == 'maxpool':
                 mask = F.adaptive_max_pool2d(mask, shape)
             else:
-                mask = F.interpolate(mask, size=shape, mode=self.mask_scale_mode)
+                mask = F.interpolate(
+                    mask, size=shape, mode=self.mask_scale_mode)
         return mask
+
 
 def make_r1_gp(discr_real_pred, real_batch):
     if torch.is_grad_enabled():
-        grad_real = torch.autograd.grad(outputs=discr_real_pred.sum(), inputs=real_batch, create_graph=True)[0]
-        grad_penalty = (grad_real.view(grad_real.shape[0], -1).norm(2, dim=1) ** 2).mean()
+        grad_real = torch.autograd.grad(
+            outputs=discr_real_pred.sum(), inputs=real_batch, create_graph=True)[0]
+        grad_penalty = (grad_real.view(
+            grad_real.shape[0], -1).norm(2, dim=1) ** 2).mean()
     else:
         grad_penalty = 0
     real_batch.requires_grad = False
 
     return grad_penalty
+
 
 class NonSaturatingWithR1(BaseAdversarialLoss):
     def __init__(self, gp_coef=5, weight=1, mask_as_fake_target=False, allow_scale_mask=False,
@@ -134,7 +139,8 @@ class NonSaturatingWithR1(BaseAdversarialLoss):
             # for reals there is no difference beetween two regions
             fake_loss = fake_loss * mask
             if self.mask_as_fake_target:
-                fake_loss = fake_loss + (1 - mask) * F.softplus(-discr_fake_pred)
+                fake_loss = fake_loss + (1 - mask) * \
+                    F.softplus(-discr_fake_pred)
 
         sum_discr_loss = real_loss + grad_penalty + fake_loss
         metrics = dict(discr_real_out=discr_real_pred.mean(),
@@ -142,13 +148,15 @@ class NonSaturatingWithR1(BaseAdversarialLoss):
                        discr_real_gp=grad_penalty)
         return sum_discr_loss.mean(), metrics
 
+
 class BCELoss(BaseAdversarialLoss):
     def __init__(self, weight):
         self.weight = weight
         self.bce_loss = nn.BCEWithLogitsLoss()
 
     def generator_loss(self, discr_fake_pred: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        real_mask_gt = torch.zeros(discr_fake_pred.shape).to(discr_fake_pred.device)
+        real_mask_gt = torch.zeros(
+            discr_fake_pred.shape).to(discr_fake_pred.device)
         fake_loss = self.bce_loss(discr_fake_pred, real_mask_gt) * self.weight
         return fake_loss, dict()
 
@@ -161,8 +169,10 @@ class BCELoss(BaseAdversarialLoss):
                            discr_real_pred: torch.Tensor,
                            discr_fake_pred: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
 
-        real_mask_gt = torch.zeros(discr_real_pred.shape).to(discr_real_pred.device)
-        sum_discr_loss = (self.bce_loss(discr_real_pred, real_mask_gt) +  self.bce_loss(discr_fake_pred, mask)) / 2
+        real_mask_gt = torch.zeros(
+            discr_real_pred.shape).to(discr_real_pred.device)
+        sum_discr_loss = (self.bce_loss(
+            discr_real_pred, real_mask_gt) + self.bce_loss(discr_fake_pred, mask)) / 2
         metrics = dict(discr_real_out=discr_real_pred.mean(),
                        discr_fake_out=discr_fake_pred.mean(),
                        discr_real_gp=0)

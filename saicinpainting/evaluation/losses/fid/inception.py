@@ -205,6 +205,7 @@ def fid_inception_v3():
 
 class FIDInceptionA(models.inception.InceptionA):
     """InceptionA block patched for FID computation"""
+
     def __init__(self, in_channels, pool_features):
         super(FIDInceptionA, self).__init__(in_channels, pool_features)
 
@@ -230,6 +231,7 @@ class FIDInceptionA(models.inception.InceptionA):
 
 class FIDInceptionC(models.inception.InceptionC):
     """InceptionC block patched for FID computation"""
+
     def __init__(self, in_channels, channels_7x7):
         super(FIDInceptionC, self).__init__(in_channels, channels_7x7)
 
@@ -258,6 +260,7 @@ class FIDInceptionC(models.inception.InceptionC):
 
 class FIDInceptionE_1(models.inception.InceptionE):
     """First InceptionE block patched for FID computation"""
+
     def __init__(self, in_channels):
         super(FIDInceptionE_1, self).__init__(in_channels)
 
@@ -291,6 +294,7 @@ class FIDInceptionE_1(models.inception.InceptionE):
 
 class FIDInceptionE_2(models.inception.InceptionE):
     """Second InceptionE block patched for FID computation"""
+
     def __init__(self, in_channels):
         super(FIDInceptionE_2, self).__init__(in_channels)
 

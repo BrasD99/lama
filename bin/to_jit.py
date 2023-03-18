@@ -27,7 +27,8 @@ class JITWrapper(nn.Module):
 
 @hydra.main(config_path="../configs/prediction", config_name="default.yaml")
 def main(predict_config: OmegaConf):
-    register_debug_signal_handlers()  # kill -10 <pid> will result in traceback dumped into log
+    # kill -10 <pid> will result in traceback dumped into log
+    register_debug_signal_handlers()
 
     train_config_path = os.path.join(predict_config.model.path, "config.yaml")
     with open(train_config_path, "r") as f:
@@ -56,7 +57,8 @@ def main(predict_config: OmegaConf):
 
     image = image.to(device)
     mask = mask.to(device)
-    traced_model = torch.jit.trace(jit_model_wrapper, (image, mask), strict=False).to(device)
+    traced_model = torch.jit.trace(
+        jit_model_wrapper, (image, mask), strict=False).to(device)
 
     save_path = Path(predict_config.save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)

@@ -24,7 +24,8 @@ def feature_matching_loss(fake_features: List[torch.Tensor], target_features: Li
         res = 0
         norm = 0
         for fake_feat, target_feat in zip(fake_features, target_features):
-            cur_mask = F.interpolate(mask, size=fake_feat.shape[-2:], mode='bilinear', align_corners=False)
+            cur_mask = F.interpolate(
+                mask, size=fake_feat.shape[-2:], mode='bilinear', align_corners=False)
             error_weights = 1 - cur_mask
             cur_val = ((fake_feat - target_feat).pow(2) * error_weights).mean()
             res = res + cur_val

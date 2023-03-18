@@ -67,7 +67,8 @@ class ObjectMask():
             scaled = deepcopy(self)
             return scaled.rescale(scaling_factor, inplace=True)
 
-        scaled_mask = rescale(self.mask.astype(float), scaling_factor, order=0) > 0.5
+        scaled_mask = rescale(self.mask.astype(
+            float), scaling_factor, order=0) > 0.5
         (up, down), (left, right) = self._get_limits(scaled_mask)
         self.mask = scaled_mask[up:down, left:right]
 
@@ -82,14 +83,16 @@ class ObjectMask():
     def crop_to_canvas(self, vertical=True, horizontal=True, inplace=False):
         if not inplace:
             cropped = deepcopy(self)
-            cropped.crop_to_canvas(vertical=vertical, horizontal=horizontal, inplace=True)
+            cropped.crop_to_canvas(
+                vertical=vertical, horizontal=horizontal, inplace=True)
             return cropped
 
         if vertical:
             if self.up >= self.height or self.down <= 0:
                 self._clean()
             else:
-                cut_up, cut_down = max(-self.up, 0), max(self.down - self.height, 0)
+                cut_up, cut_down = max(-self.up,
+                                       0), max(self.down - self.height, 0)
                 if cut_up != 0:
                     self.mask = self.mask[cut_up:]
                     self.up = 0
@@ -101,7 +104,8 @@ class ObjectMask():
             if self.left >= self.width or self.right <= 0:
                 self._clean()
             else:
-                cut_left, cut_right = max(-self.left, 0), max(self.right - self.width, 0)
+                cut_left, cut_right = max(-self.left,
+                                          0), max(self.right - self.width, 0)
                 if cut_left != 0:
                     self.mask = self.mask[:, cut_left:]
                     self.left = 0
@@ -168,8 +172,10 @@ class SegmentationMask:
 
         assert DETECTRON_INSTALLED, 'Cannot use SegmentationMask without detectron2'
         self.cfg = get_cfg()
-        self.cfg.merge_from_file(model_zoo.get_config_file("COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml"))
-        self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml")
+        self.cfg.merge_from_file(model_zoo.get_config_file(
+            "COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml"))
+        self.cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
+            "COCO-PanopticSegmentation/panoptic_fpn_R_101_3x.yaml")
         self.cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = confidence_threshold
         self.predictor = DefaultPredictor(self.cfg)
 
@@ -216,7 +222,8 @@ class SegmentationMask:
 
         num_iterations = width.bit_length() - 1 - self.downsample_levels
         if num_iterations < 0:
-            raise ValueError(f"Width is lower than 2^{self.downsample_levels}.")
+            raise ValueError(
+                f"Width is lower than 2^{self.downsample_levels}.")
 
         if height.bit_length() - 1 < num_iterations:
             raise ValueError("Height is too low to perform downsampling")
@@ -228,12 +235,14 @@ class SegmentationMask:
         return downsampled
 
     def _augmentation_params(self):
-        scaling_factor = np.random.uniform(1 - self.max_scale_change, 1 + self.max_scale_change)
+        scaling_factor = np.random.uniform(
+            1 - self.max_scale_change, 1 + self.max_scale_change)
         if self.horizontal_flip:
             horizontal_flip = bool(np.random.choice(2))
         else:
             horizontal_flip = False
-        vertical_shift = np.random.uniform(-self.max_vertical_shift, self.max_vertical_shift)
+        vertical_shift = np.random.uniform(-self.max_vertical_shift,
+                                           self.max_vertical_shift)
 
         return {
             "scaling_factor": scaling_factor,
@@ -249,9 +258,11 @@ class SegmentationMask:
 
     def _check_masks_intersection(self, aug_mask, total_mask_area, prev_masks):
         for existing_mask in prev_masks:
-            intersection_area = self._get_intersection(existing_mask, aug_mask).sum()
+            intersection_area = self._get_intersection(
+                existing_mask, aug_mask).sum()
             intersection_existing = intersection_area / existing_mask.sum()
-            intersection_current = 1 - (aug_mask.area() - intersection_area) / total_mask_area
+            intersection_current = 1 - \
+                (aug_mask.area() - intersection_area) / total_mask_area
             if (intersection_existing > self.max_mask_intersection) or \
                (intersection_current > self.max_mask_intersection):
                 return False
@@ -259,7 +270,8 @@ class SegmentationMask:
 
     def _check_foreground_intersection(self, aug_mask, foreground):
         for existing_mask in foreground:
-            intersection_area = self._get_intersection(existing_mask, aug_mask).sum()
+            intersection_area = self._get_intersection(
+                existing_mask, aug_mask).sum()
             intersection_existing = intersection_area / existing_mask.sum()
             if intersection_existing > self.max_foreground_coverage:
                 return False
@@ -282,15 +294,18 @@ class SegmentationMask:
             augmentation_params = self._augmentation_params()
             augmentation_params["scaling_factor"] = min([
                 augmentation_params["scaling_factor"],
-                2 * min(orig_mask.up, orig_mask.height - orig_mask.down) / orig_mask.height + 1.,
-                2 * min(orig_mask.left, orig_mask.width - orig_mask.right) / orig_mask.width + 1.
+                2 * min(orig_mask.up, orig_mask.height -
+                        orig_mask.down) / orig_mask.height + 1.,
+                2 * min(orig_mask.left, orig_mask.width -
+                        orig_mask.right) / orig_mask.width + 1.
             ])
             augmentation_params["scaling_factor"] = max([
                 augmentation_params["scaling_factor"], scaling_factor_lower_bound
             ])
 
             aug_mask = deepcopy(orig_mask)
-            aug_mask.rescale(augmentation_params["scaling_factor"], inplace=True)
+            aug_mask.rescale(
+                augmentation_params["scaling_factor"], inplace=True)
             if augmentation_params["horizontal_flip"]:
                 aug_mask.horizontal_flip(inplace=True)
             total_aug_area = aug_mask.area()
@@ -299,28 +314,37 @@ class SegmentationMask:
                 continue
 
             # Fix if the element vertical shift is too strong and shown area is too small:
-            vertical_area = aug_mask.mask.sum(axis=1) / total_aug_area  # share of area taken by rows
+            vertical_area = aug_mask.mask.sum(
+                axis=1) / total_aug_area  # share of area taken by rows
             # number of rows which are allowed to be hidden from upper and lower parts of image respectively
-            max_hidden_up = np.searchsorted(vertical_area.cumsum(), self.max_hidden_area)
-            max_hidden_down = np.searchsorted(vertical_area[::-1].cumsum(), self.max_hidden_area)
+            max_hidden_up = np.searchsorted(
+                vertical_area.cumsum(), self.max_hidden_area)
+            max_hidden_down = np.searchsorted(
+                vertical_area[::-1].cumsum(), self.max_hidden_area)
             # correcting vertical shift, so not too much area will be hidden
             augmentation_params["vertical_shift"] = np.clip(
                 augmentation_params["vertical_shift"],
                 -(aug_mask.up + max_hidden_up) / aug_mask.height,
-                (aug_mask.height - aug_mask.down + max_hidden_down) / aug_mask.height
+                (aug_mask.height - aug_mask.down +
+                 max_hidden_down) / aug_mask.height
             )
             # Applying vertical shift:
-            vertical_shift = int(round(aug_mask.height * augmentation_params["vertical_shift"]))
+            vertical_shift = int(
+                round(aug_mask.height * augmentation_params["vertical_shift"]))
             aug_mask.shift(vertical=vertical_shift, inplace=True)
-            aug_mask.crop_to_canvas(vertical=True, horizontal=False, inplace=True)
+            aug_mask.crop_to_canvas(
+                vertical=True, horizontal=False, inplace=True)
 
             # Choosing horizontal shift:
-            max_hidden_area = self.max_hidden_area - (1 - aug_mask.area() / total_aug_area)
+            max_hidden_area = self.max_hidden_area - \
+                (1 - aug_mask.area() / total_aug_area)
             horizontal_area = aug_mask.mask.sum(axis=0) / total_aug_area
-            max_hidden_left = np.searchsorted(horizontal_area.cumsum(), max_hidden_area)
-            max_hidden_right = np.searchsorted(horizontal_area[::-1].cumsum(), max_hidden_area)
+            max_hidden_left = np.searchsorted(
+                horizontal_area.cumsum(), max_hidden_area)
+            max_hidden_right = np.searchsorted(
+                horizontal_area[::-1].cumsum(), max_hidden_area)
             allowed_shifts = np.arange(-max_hidden_left, aug_mask.width -
-                                      (aug_mask.right - aug_mask.left) + max_hidden_right + 1)
+                                       (aug_mask.right - aug_mask.left) + max_hidden_right + 1)
             allowed_shifts = - (aug_mask.left - allowed_shifts)
 
             if self.position_shuffle:
@@ -334,11 +358,13 @@ class SegmentationMask:
 
                 prev_masks = [mask] + chosen_masks
                 is_mask_suitable = self._check_masks_intersection(aug_mask_left, total_aug_area, prev_masks) & \
-                                   self._check_foreground_intersection(aug_mask_left, foreground)
+                    self._check_foreground_intersection(
+                        aug_mask_left, foreground)
                 if is_mask_suitable:
                     aug_draw = aug_mask_left.restore_full_mask()
                     chosen_masks.append(aug_draw)
-                    augmentation_params["horizontal_shift"] = horizontal_shift / aug_mask_left.width
+                    augmentation_params["horizontal_shift"] = horizontal_shift / \
+                        aug_mask_left.width
                     chosen_parameters.append(augmentation_params)
                     mask_is_found = True
                     break
@@ -350,16 +376,20 @@ class SegmentationMask:
 
     def _prepare_mask(self, mask):
         height, width = mask.shape
-        target_width = width if self._is_power_of_two(width) else (1 << width.bit_length())
-        target_height = height if self._is_power_of_two(height) else (1 << height.bit_length())
+        target_width = width if self._is_power_of_two(
+            width) else (1 << width.bit_length())
+        target_height = height if self._is_power_of_two(
+            height) else (1 << height.bit_length())
 
         return resize(mask.astype('float32'), (target_height, target_width), order=0, mode='edge').round().astype('int32')
 
     def get_masks(self, im, return_panoptic=False):
         panoptic_seg, segments_info = self.get_segmentation(im)
-        potential_mask_ids = self.identify_candidates(panoptic_seg, segments_info)
+        potential_mask_ids = self.identify_candidates(
+            panoptic_seg, segments_info)
 
-        panoptic_seg_scaled = self._prepare_mask(panoptic_seg.detach().cpu().numpy())
+        panoptic_seg_scaled = self._prepare_mask(
+            panoptic_seg.detach().cpu().numpy())
         downsampled = self.downsample_mask(panoptic_seg_scaled)
         scene_objects = []
         for segment in segments_info:
@@ -381,11 +411,13 @@ class SegmentationMask:
             elif self.rigidness_mode is RigidnessMode.rigid:
                 foreground = scene_objects
             else:
-                raise ValueError(f'Unexpected rigidness_mode: {rigidness_mode}')
+                raise ValueError(
+                    f'Unexpected rigidness_mode: {rigidness_mode}')
 
             masks_params = self._move_mask(mask, foreground)
 
-            full_mask = ObjectMask((panoptic_seg == mask_id).detach().cpu().numpy())
+            full_mask = ObjectMask(
+                (panoptic_seg == mask_id).detach().cpu().numpy())
 
             for params in masks_params:
                 aug_mask = deepcopy(full_mask)
@@ -393,9 +425,12 @@ class SegmentationMask:
                 if params["horizontal_flip"]:
                     aug_mask.horizontal_flip(inplace=True)
 
-                vertical_shift = int(round(aug_mask.height * params["vertical_shift"]))
-                horizontal_shift = int(round(aug_mask.width * params["horizontal_shift"]))
-                aug_mask.shift(vertical=vertical_shift, horizontal=horizontal_shift, inplace=True)
+                vertical_shift = int(
+                    round(aug_mask.height * params["vertical_shift"]))
+                horizontal_shift = int(
+                    round(aug_mask.width * params["horizontal_shift"]))
+                aug_mask.shift(vertical=vertical_shift,
+                               horizontal=horizontal_shift, inplace=True)
                 aug_mask = aug_mask.restore_full_mask().astype('uint8')
                 if aug_mask.mean() <= self.min_mask_area:
                     continue
@@ -409,21 +444,26 @@ class SegmentationMask:
 
 def propose_random_square_crop(mask, min_overlap=0.5):
     height, width = mask.shape
-    mask_ys, mask_xs = np.where(mask > 0.5)  # mask==0 is known fragment and mask==1 is missing
+    # mask==0 is known fragment and mask==1 is missing
+    mask_ys, mask_xs = np.where(mask > 0.5)
 
     if height < width:
         crop_size = height
         obj_left, obj_right = mask_xs.min(), mask_xs.max()
         obj_width = obj_right - obj_left
-        left_border = max(0, min(width - crop_size - 1, obj_left + obj_width * min_overlap - crop_size))
-        right_border = max(left_border + 1, min(width - crop_size, obj_left + obj_width * min_overlap))
+        left_border = max(0, min(width - crop_size - 1,
+                          obj_left + obj_width * min_overlap - crop_size))
+        right_border = max(left_border + 1, min(width -
+                           crop_size, obj_left + obj_width * min_overlap))
         start_x = np.random.randint(left_border, right_border)
         return start_x, 0, start_x + crop_size, height
     else:
         crop_size = width
         obj_top, obj_bottom = mask_ys.min(), mask_ys.max()
         obj_height = obj_bottom - obj_top
-        top_border = max(0, min(height - crop_size - 1, obj_top + obj_height * min_overlap - crop_size))
-        bottom_border = max(top_border + 1, min(height - crop_size, obj_top + obj_height * min_overlap))
+        top_border = max(0, min(height - crop_size - 1,
+                         obj_top + obj_height * min_overlap - crop_size))
+        bottom_border = max(top_border + 1, min(height -
+                            crop_size, obj_top + obj_height * min_overlap))
         start_y = np.random.randint(top_border, bottom_border)
         return 0, start_y, width, start_y + crop_size

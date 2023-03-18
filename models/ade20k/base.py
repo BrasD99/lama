@@ -69,7 +69,8 @@ class ModelBuilder:
         pretrained = True if len(weights) == 0 else False
         arch = arch.lower()
         if arch == 'mobilenetv2dilated':
-            orig_mobilenet = mobilenet.__dict__['mobilenetv2'](pretrained=pretrained)
+            orig_mobilenet = mobilenet.__dict__[
+                'mobilenetv2'](pretrained=pretrained)
             net_encoder = MobileNetV2Dilated(orig_mobilenet, dilate_scale=8)
         elif arch == 'resnet18':
             orig_resnet = resnet.__dict__['resnet18'](pretrained=pretrained)
@@ -123,14 +124,16 @@ class ModelBuilder:
 
     @staticmethod
     def get_decoder(weights_path, arch_encoder, arch_decoder, fc_dim, drop_last_conv, *arts, **kwargs):
-        path = os.path.join(weights_path, 'ade20k', f'ade20k-{arch_encoder}-{arch_decoder}/decoder_epoch_20.pth')
+        path = os.path.join(
+            weights_path, 'ade20k', f'ade20k-{arch_encoder}-{arch_decoder}/decoder_epoch_20.pth')
         return ModelBuilder.build_decoder(arch=arch_decoder, fc_dim=fc_dim, weights=path, use_softmax=True, drop_last_conv=drop_last_conv)
 
     @staticmethod
     def get_encoder(weights_path, arch_encoder, arch_decoder, fc_dim, segmentation,
                     *arts, **kwargs):
         if segmentation:
-            path = os.path.join(weights_path, 'ade20k', f'ade20k-{arch_encoder}-{arch_decoder}/encoder_epoch_20.pth')
+            path = os.path.join(
+                weights_path, 'ade20k', f'ade20k-{arch_encoder}-{arch_decoder}/encoder_epoch_20.pth')
         else:
             path = ''
         return ModelBuilder.build_encoder(arch=arch_encoder, fc_dim=fc_dim, weights=path)
@@ -138,7 +141,8 @@ class ModelBuilder:
 
 def conv3x3_bn_relu(in_planes, out_planes, stride=1):
     return nn.Sequential(
-        nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False),
+        nn.Conv2d(in_planes, out_planes, kernel_size=3,
+                  stride=stride, padding=1, bias=False),
         BatchNorm2d(out_planes),
         nn.ReLU(inplace=True),
     )
@@ -170,16 +174,20 @@ class SegmentationModule(nn.Module):
             self.arch_decoder = "c1_deepsup"
             self.fc_dim = 320
         else:
-            raise NotImplementedError(f"No such arch_encoder={self.arch_encoder}")
+            raise NotImplementedError(
+                f"No such arch_encoder={self.arch_encoder}")
         model_builder_kwargs = dict(arch_encoder=self.arch_encoder,
                                     arch_decoder=self.arch_decoder,
                                     fc_dim=self.fc_dim,
                                     drop_last_conv=drop_last_conv,
                                     weights_path=self.weights_path)
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.encoder = ModelBuilder.get_encoder(**model_builder_kwargs) if net_enc is None else net_enc
-        self.decoder = ModelBuilder.get_decoder(**model_builder_kwargs) if net_dec is None else net_dec
+        self.device = torch.device(
+            'cuda' if torch.cuda.is_available() else 'cpu')
+        self.encoder = ModelBuilder.get_encoder(
+            **model_builder_kwargs) if net_enc is None else net_enc
+        self.decoder = ModelBuilder.get_decoder(
+            **model_builder_kwargs) if net_dec is None else net_dec
         self.use_default_normalization = use_default_normalization
         self.default_normalization = NormalizeTensor(mean=[0.485, 0.456, 0.406],
                                                      std=[0.229, 0.224, 0.225])
@@ -193,16 +201,19 @@ class SegmentationModule(nn.Module):
 
     def normalize_input(self, tensor):
         if tensor.min() < 0 or tensor.max() > 1:
-            raise ValueError("Tensor should be 0..1 before using normalize_input")
+            raise ValueError(
+                "Tensor should be 0..1 before using normalize_input")
         return self.default_normalization(tensor)
 
     @property
     def feature_maps_channels(self):
-        return 256 * 2**(self.return_feature_maps_level)  # 256, 512, 1024, 2048
+        # 256, 512, 1024, 2048
+        return 256 * 2**(self.return_feature_maps_level)
 
     def forward(self, img_data, segSize=None):
         if segSize is None:
-            raise NotImplementedError("Please pass segSize param. By default: (300, 300)")
+            raise NotImplementedError(
+                "Please pass segSize param. By default: (300, 300)")
 
         fmaps = self.encoder(img_data, return_feature_maps=True)
         pred = self.decoder(fmaps, segSize=segSize)
@@ -244,8 +255,10 @@ class SegmentationModule(nn.Module):
         with torch.no_grad():
             if self.use_default_normalization:
                 tensor = self.normalize_input(tensor)
-            scores = torch.zeros(1, NUM_CLASS, segSize[0], segSize[1]).to(self.device)
-            features = torch.zeros(1, self.feature_maps_channels, segSize[0], segSize[1]).to(self.device)
+            scores = torch.zeros(
+                1, NUM_CLASS, segSize[0], segSize[1]).to(self.device)
+            features = torch.zeros(
+                1, self.feature_maps_channels, segSize[0], segSize[1]).to(self.device)
 
             result = []
             for img_size in imgSizes:
@@ -255,17 +268,19 @@ class SegmentationModule(nn.Module):
                     img_data = tensor.clone()
 
                 if self.return_feature_maps:
-                    pred_current, fmaps = self.forward(img_data, segSize=segSize)
+                    pred_current, fmaps = self.forward(
+                        img_data, segSize=segSize)
                 else:
                     pred_current = self.forward(img_data, segSize=segSize)
-
 
                 result.append(pred_current)
                 scores = scores + pred_current / len(imgSizes)
 
                 # Disclaimer: We use and aggregate only last fmaps: fmaps[3]
                 if self.return_feature_maps:
-                    features = features + F.interpolate(fmaps[self.return_feature_maps_level], size=segSize) / len(imgSizes)
+                    features = features + \
+                        F.interpolate(
+                            fmaps[self.return_feature_maps_level], size=segSize) / len(imgSizes)
 
             _, pred = torch.max(scores, dim=1)
 
@@ -276,10 +291,14 @@ class SegmentationModule(nn.Module):
 
     def get_edges(self, t):
         edge = torch.cuda.ByteTensor(t.size()).zero_()
-        edge[:, :, :, 1:] = edge[:, :, :, 1:] | (t[:, :, :, 1:] != t[:, :, :, :-1])
-        edge[:, :, :, :-1] = edge[:, :, :, :-1] | (t[:, :, :, 1:] != t[:, :, :, :-1])
-        edge[:, :, 1:, :] = edge[:, :, 1:, :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
-        edge[:, :, :-1, :] = edge[:, :, :-1, :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
+        edge[:, :, :, 1:] = edge[:, :, :, 1:] | (
+            t[:, :, :, 1:] != t[:, :, :, :-1])
+        edge[:, :, :, :-1] = edge[:, :, :, :-
+                                  1] | (t[:, :, :, 1:] != t[:, :, :, :-1])
+        edge[:, :, 1:, :] = edge[:, :, 1:, :] | (
+            t[:, :, 1:, :] != t[:, :, :-1, :])
+        edge[:, :, :-1, :] = edge[:, :, :-1,
+                                  :] | (t[:, :, 1:, :] != t[:, :, :-1, :])
 
         if True:
             return edge.half()
@@ -380,16 +399,22 @@ class Resnet(nn.Module):
         x = self.relu3(self.bn3(self.conv3(x)))
         x = self.maxpool(x)
 
-        x = self.layer1(x); conv_out.append(x);
-        x = self.layer2(x); conv_out.append(x);
-        x = self.layer3(x); conv_out.append(x);
-        x = self.layer4(x); conv_out.append(x);
+        x = self.layer1(x)
+        conv_out.append(x)
+        x = self.layer2(x)
+        conv_out.append(x)
+        x = self.layer3(x)
+        conv_out.append(x)
+        x = self.layer4(x)
+        conv_out.append(x)
 
         if return_feature_maps:
             return conv_out
         return [x]
 
 # Resnet Dilated
+
+
 class ResnetDilated(nn.Module):
     def __init__(self, orig_resnet, dilate_scale=8):
         super().__init__()
@@ -455,6 +480,7 @@ class ResnetDilated(nn.Module):
         if return_feature_maps:
             return conv_out
         return [x]
+
 
 class MobileNetV2Dilated(nn.Module):
     def __init__(self, orig_net, dilate_scale=8):
@@ -568,7 +594,7 @@ class C1(nn.Module):
         x = self.cbr(conv5)
         x = self.conv_last(x)
 
-        if self.use_softmax: # is True during inference
+        if self.use_softmax:  # is True during inference
             x = nn.functional.interpolate(
                 x, size=segSize, mode='bilinear', align_corners=False)
             x = nn.functional.softmax(x, dim=1)

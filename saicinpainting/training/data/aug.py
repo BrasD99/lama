@@ -1,6 +1,7 @@
 from albumentations import DualIAATransform, to_tuple
 import imgaug.augmenters as iaa
 
+
 class IAAAffine2(DualIAATransform):
     """Place a regular grid of points on the input and randomly move the neighbourhood of these point around
     via affine transformations.

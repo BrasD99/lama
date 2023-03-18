@@ -20,7 +20,8 @@ class DirectoryVisualizer(BaseVisualizer):
         self.rescale_keys = rescale_keys
 
     def __call__(self, epoch_i, batch_i, batch, suffix='', rank=None):
-        check_and_warn_input_range(batch['image'], 0, 1, 'DirectoryVisualizer target image')
+        check_and_warn_input_range(
+            batch['image'], 0, 1, 'DirectoryVisualizer target image')
         vis_img = visualize_mask_and_images_batch(batch, self.key_order, max_items=self.max_items_in_batch,
                                                   last_without_mask=self.last_without_mask,
                                                   rescale_keys=self.rescale_keys)
@@ -30,7 +31,8 @@ class DirectoryVisualizer(BaseVisualizer):
         curoutdir = os.path.join(self.outdir, f'epoch{epoch_i:04d}{suffix}')
         os.makedirs(curoutdir, exist_ok=True)
         rank_suffix = f'_r{rank}' if rank is not None else ''
-        out_fname = os.path.join(curoutdir, f'batch{batch_i:07d}{rank_suffix}.jpg')
+        out_fname = os.path.join(
+            curoutdir, f'batch{batch_i:07d}{rank_suffix}.jpg')
 
         vis_img = cv2.cvtColor(vis_img, cv2.COLOR_RGB2BGR)
         cv2.imwrite(out_fname, vis_img)

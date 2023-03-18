@@ -8,7 +8,8 @@ from skimage.segmentation import mark_boundaries
 
 from . import colors
 
-COLORS, _ = colors.generate_colors(151) # 151 - max classes for semantic segmentation
+# 151 - max classes for semantic segmentation
+COLORS, _ = colors.generate_colors(151)
 
 
 class BaseVisualizer:

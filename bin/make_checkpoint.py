@@ -27,16 +27,19 @@ def main(args):
         for fname in checkpoint_fnames[1:]:
             print('sum', fname)
             sum_tensors_cnt = 0
-            other_cp = torch.load(os.path.join(args.indir, 'models', fname), map_location='cpu')
+            other_cp = torch.load(os.path.join(
+                args.indir, 'models', fname), map_location='cpu')
             for k in checkpoint['state_dict'].keys():
                 if checkpoint['state_dict'][k].dtype is torch.float:
-                    checkpoint['state_dict'][k].data.add_(other_cp['state_dict'][k].data)
+                    checkpoint['state_dict'][k].data.add_(
+                        other_cp['state_dict'][k].data)
                     sum_tensors_cnt += 1
             print('summed', sum_tensors_cnt, 'tensors')
 
         for k in checkpoint['state_dict'].keys():
             if checkpoint['state_dict'][k].dtype is torch.float:
-                checkpoint['state_dict'][k].data.mul_(1 / float(len(checkpoint_fnames)))
+                checkpoint['state_dict'][k].data.mul_(
+                    1 / float(len(checkpoint_fnames)))
 
     state_dict = checkpoint['state_dict']
 

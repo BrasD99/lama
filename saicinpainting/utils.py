@@ -1,3 +1,4 @@
+import platform
 import bisect
 import functools
 import logging
@@ -13,15 +14,16 @@ from pytorch_lightning import seed_everything
 
 LOGGER = logging.getLogger(__name__)
 
-import platform
 if platform.system() != 'Linux':
     signal.SIGUSR1 = 1
+
 
 def check_and_warn_input_range(tensor, min_value, max_value, name):
     actual_min = tensor.min()
     actual_max = tensor.max()
     if actual_min < min_value or actual_max > max_value:
-        warnings.warn(f"{name} must be in {min_value}..{max_value} range, but it ranges {actual_min}..{actual_max}")
+        warnings.warn(
+            f"{name} must be in {min_value}..{max_value} range, but it ranges {actual_min}..{actual_max}")
 
 
 def sum_dict_with_prefix(target, cur_dict, prefix, default=0):
@@ -83,7 +85,8 @@ class LadderRamp:
     def __init__(self, start_iters, values):
         self.start_iters = start_iters
         self.values = values
-        assert len(values) == len(start_iters) + 1, (len(values), len(start_iters))
+        assert len(values) == len(start_iters) + \
+            1, (len(values), len(start_iters))
 
     def __call__(self, i):
         segment_i = bisect.bisect_right(self.start_iters, i)

@@ -21,7 +21,7 @@ class ResNetHead(nn.Module):
                  norm_layer(ngf),
                  activation]
 
-        ### downsample
+        # downsample
         for i in range(n_downsampling):
             mult = 2 ** i
             model += [conv_layer(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1),
@@ -30,7 +30,7 @@ class ResNetHead(nn.Module):
 
         mult = 2 ** n_downsampling
 
-        ### resnet blocks
+        # resnet blocks
         for i in range(n_blocks):
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, activation=activation, norm_layer=norm_layer,
                                   conv_kind=conv_kind)]
@@ -56,12 +56,12 @@ class ResNetTail(nn.Module):
         if add_in_proj is not None:
             model.append(nn.Conv2d(add_in_proj, ngf * mult, kernel_size=1))
 
-        ### resnet blocks
+        # resnet blocks
         for i in range(n_blocks):
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, activation=activation, norm_layer=norm_layer,
                                   conv_kind=conv_kind)]
 
-        ### upsample
+        # upsample
         for i in range(n_downsampling):
             mult = 2 ** (n_downsampling - i)
             model += [nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1,
@@ -79,7 +79,8 @@ class ResNetTail(nn.Module):
                        nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0)]
 
         if add_out_act:
-            out_layers.append(get_activation('tanh' if add_out_act is True else add_out_act))
+            out_layers.append(get_activation(
+                'tanh' if add_out_act is True else add_out_act))
 
         self.out_proj = nn.Sequential(*out_layers)
 
@@ -121,7 +122,7 @@ class MultiscaleResNet(nn.Module):
         return len(self.heads)
 
     def forward(self, ms_inputs: List[torch.Tensor], smallest_scales_num: Optional[int] = None) \
-        -> Union[torch.Tensor, List[torch.Tensor]]:
+            -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         :param ms_inputs: List of inputs of different resolutions from HR to LR
         :param smallest_scales_num: int or None, number of smallest scales to take at input
@@ -130,13 +131,16 @@ class MultiscaleResNet(nn.Module):
             False: List of outputs of different resolutions from HR to LR
         """
         if smallest_scales_num is None:
-            assert len(self.heads) == len(ms_inputs), (len(self.heads), len(ms_inputs), smallest_scales_num)
+            assert len(self.heads) == len(ms_inputs), (len(
+                self.heads), len(ms_inputs), smallest_scales_num)
             smallest_scales_num = len(self.heads)
         else:
-            assert smallest_scales_num == len(ms_inputs) <= len(self.heads), (len(self.heads), len(ms_inputs), smallest_scales_num)
+            assert smallest_scales_num == len(ms_inputs) <= len(
+                self.heads), (len(self.heads), len(ms_inputs), smallest_scales_num)
 
         cur_heads = self.heads[-smallest_scales_num:]
-        ms_features = [cur_head(cur_inp) for cur_head, cur_inp in zip(cur_heads, ms_inputs)]
+        ms_features = [cur_head(cur_inp)
+                       for cur_head, cur_inp in zip(cur_heads, ms_inputs)]
 
         all_outputs = []
         prev_tail_features = None
@@ -148,9 +152,11 @@ class MultiscaleResNet(nn.Module):
                 if prev_tail_features.shape != cur_tail_input.shape:
                     prev_tail_features = F.interpolate(prev_tail_features, size=cur_tail_input.shape[2:],
                                                        mode='bilinear', align_corners=False)
-                cur_tail_input = torch.cat((cur_tail_input, prev_tail_features), dim=1)
+                cur_tail_input = torch.cat(
+                    (cur_tail_input, prev_tail_features), dim=1)
 
-            cur_out, cur_tail_feats = self.tails[scale_i](cur_tail_input, return_last_act=True)
+            cur_out, cur_tail_feats = self.tails[scale_i](
+                cur_tail_input, return_last_act=True)
 
             prev_tail_features = cur_tail_feats
             all_outputs.append(cur_out)
@@ -187,7 +193,8 @@ class MultiscaleDiscriminatorSimple(nn.Module):
         :return: List of pairs (prediction, features) for different resolutions from HR to LR
         """
         if smallest_scales_num is None:
-            assert len(self.ms_impl) == len(ms_inputs), (len(self.ms_impl), len(ms_inputs), smallest_scales_num)
+            assert len(self.ms_impl) == len(ms_inputs), (len(
+                self.ms_impl), len(ms_inputs), smallest_scales_num)
             smallest_scales_num = len(self.heads)
         else:
             assert smallest_scales_num == len(ms_inputs) <= len(self.ms_impl), \
@@ -229,7 +236,8 @@ class DiscriminatorMultiToSingleOutputStackedMixin:
                                    for cur_out in outs[1:]]
         out = torch.cat(scaled_outs, dim=1)
         if self.return_feats_only_levels is not None:
-            feat_lists = [out_feat_tuples[i][1] for i in self.return_feats_only_levels]
+            feat_lists = [out_feat_tuples[i][1]
+                          for i in self.return_feats_only_levels]
         else:
             feat_lists = [flist for _, flist in out_feat_tuples]
         feats = [f for flist in feat_lists for f in flist]

@@ -7,7 +7,8 @@ import collections
 from torch.nn.parallel._functions import Gather
 
 
-__all__ = ['UserScatteredDataParallel', 'user_scattered_collate', 'async_copy_to']
+__all__ = ['UserScatteredDataParallel',
+           'user_scattered_collate', 'async_copy_to']
 
 
 def async_copy_to(obj, dev, main_stream=None):
@@ -108,5 +109,6 @@ def _get_stream(device):
         return None
     if _streams is None:
         _streams = [None] * cuda.device_count()
-    if _streams[device] is None: _streams[device] = cuda.Stream(device)
+    if _streams[device] is None:
+        _streams[device] = cuda.Stream(device)
     return _streams[device]

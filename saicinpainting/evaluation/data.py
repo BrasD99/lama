@@ -46,7 +46,8 @@ def scale_image(img, factor, interpolation=cv2.INTER_AREA):
     else:
         img = np.transpose(img, (1, 2, 0))
 
-    img = cv2.resize(img, dsize=None, fx=factor, fy=factor, interpolation=interpolation)
+    img = cv2.resize(img, dsize=None, fx=factor, fy=factor,
+                     interpolation=interpolation)
 
     if img.ndim == 2:
         img = img[None, ...]
@@ -58,8 +59,10 @@ def scale_image(img, factor, interpolation=cv2.INTER_AREA):
 class InpaintingDataset(Dataset):
     def __init__(self, datadir, img_suffix='.jpg', pad_out_to_modulo=None, scale_factor=None):
         self.datadir = datadir
-        self.mask_filenames = sorted(list(glob.glob(os.path.join(self.datadir, '**', '*mask*.png'), recursive=True)))
-        self.img_filenames = [fname.rsplit('_mask', 1)[0] + img_suffix for fname in self.mask_filenames]
+        self.mask_filenames = sorted(
+            list(glob.glob(os.path.join(self.datadir, '**', '*mask*.png'), recursive=True)))
+        self.img_filenames = [fname.rsplit(
+            '_mask', 1)[0] + img_suffix for fname in self.mask_filenames]
         self.pad_out_to_modulo = pad_out_to_modulo
         self.scale_factor = scale_factor
 
@@ -73,20 +76,26 @@ class InpaintingDataset(Dataset):
 
         if self.scale_factor is not None:
             result['image'] = scale_image(result['image'], self.scale_factor)
-            result['mask'] = scale_image(result['mask'], self.scale_factor, interpolation=cv2.INTER_NEAREST)
+            result['mask'] = scale_image(
+                result['mask'], self.scale_factor, interpolation=cv2.INTER_NEAREST)
 
         if self.pad_out_to_modulo is not None and self.pad_out_to_modulo > 1:
             result['unpad_to_size'] = result['image'].shape[1:]
-            result['image'] = pad_img_to_modulo(result['image'], self.pad_out_to_modulo)
-            result['mask'] = pad_img_to_modulo(result['mask'], self.pad_out_to_modulo)
+            result['image'] = pad_img_to_modulo(
+                result['image'], self.pad_out_to_modulo)
+            result['mask'] = pad_img_to_modulo(
+                result['mask'], self.pad_out_to_modulo)
 
         return result
+
 
 class OurInpaintingDataset(Dataset):
     def __init__(self, datadir, img_suffix='.jpg', pad_out_to_modulo=None, scale_factor=None):
         self.datadir = datadir
-        self.mask_filenames = sorted(list(glob.glob(os.path.join(self.datadir, 'mask', '**', '*mask*.png'), recursive=True)))
-        self.img_filenames = [os.path.join(self.datadir, 'img', os.path.basename(fname.rsplit('-', 1)[0].rsplit('_', 1)[0]) + '.png') for fname in self.mask_filenames]
+        self.mask_filenames = sorted(list(glob.glob(os.path.join(
+            self.datadir, 'mask', '**', '*mask*.png'), recursive=True)))
+        self.img_filenames = [os.path.join(self.datadir, 'img', os.path.basename(
+            fname.rsplit('-', 1)[0].rsplit('_', 1)[0]) + '.png') for fname in self.mask_filenames]
         self.pad_out_to_modulo = pad_out_to_modulo
         self.scale_factor = scale_factor
 
@@ -102,10 +111,13 @@ class OurInpaintingDataset(Dataset):
             result['mask'] = scale_image(result['mask'], self.scale_factor)
 
         if self.pad_out_to_modulo is not None and self.pad_out_to_modulo > 1:
-            result['image'] = pad_img_to_modulo(result['image'], self.pad_out_to_modulo)
-            result['mask'] = pad_img_to_modulo(result['mask'], self.pad_out_to_modulo)
+            result['image'] = pad_img_to_modulo(
+                result['image'], self.pad_out_to_modulo)
+            result['mask'] = pad_img_to_modulo(
+                result['mask'], self.pad_out_to_modulo)
 
         return result
+
 
 class PrecomputedInpaintingResultsDataset(InpaintingDataset):
     def __init__(self, datadir, predictdir, inpainted_suffix='_inpainted.jpg', **kwargs):
@@ -120,8 +132,10 @@ class PrecomputedInpaintingResultsDataset(InpaintingDataset):
         result = super().__getitem__(i)
         result['inpainted'] = load_image(self.pred_filenames[i])
         if self.pad_out_to_modulo is not None and self.pad_out_to_modulo > 1:
-            result['inpainted'] = pad_img_to_modulo(result['inpainted'], self.pad_out_to_modulo)
+            result['inpainted'] = pad_img_to_modulo(
+                result['inpainted'], self.pad_out_to_modulo)
         return result
+
 
 class OurPrecomputedInpaintingResultsDataset(OurInpaintingDataset):
     def __init__(self, datadir, predictdir, inpainted_suffix="png", **kwargs):
@@ -139,14 +153,17 @@ class OurPrecomputedInpaintingResultsDataset(OurInpaintingDataset):
         result['inpainted'] = self.file_loader(self.pred_filenames[i])
 
         if self.pad_out_to_modulo is not None and self.pad_out_to_modulo > 1:
-            result['inpainted'] = pad_img_to_modulo(result['inpainted'], self.pad_out_to_modulo)
+            result['inpainted'] = pad_img_to_modulo(
+                result['inpainted'], self.pad_out_to_modulo)
         return result
+
 
 class InpaintingEvalOnlineDataset(Dataset):
     def __init__(self, indir, mask_generator, img_suffix='.jpg', pad_out_to_modulo=None, scale_factor=None,  **kwargs):
         self.indir = indir
         self.mask_generator = mask_generator
-        self.img_filenames = sorted(list(glob.glob(os.path.join(self.indir, '**', f'*{img_suffix}' ), recursive=True)))
+        self.img_filenames = sorted(list(glob.glob(os.path.join(
+            self.indir, '**', f'*{img_suffix}'), recursive=True)))
         self.pad_out_to_modulo = pad_out_to_modulo
         self.scale_factor = scale_factor
 
@@ -154,15 +171,19 @@ class InpaintingEvalOnlineDataset(Dataset):
         return len(self.img_filenames)
 
     def __getitem__(self, i):
-        img, raw_image = load_image(self.img_filenames[i], mode='RGB', return_orig=True)
+        img, raw_image = load_image(
+            self.img_filenames[i], mode='RGB', return_orig=True)
         mask = self.mask_generator(img, raw_image=raw_image)
         result = dict(image=img, mask=mask)
 
         if self.scale_factor is not None:
             result['image'] = scale_image(result['image'], self.scale_factor)
-            result['mask'] = scale_image(result['mask'], self.scale_factor, interpolation=cv2.INTER_NEAREST)
+            result['mask'] = scale_image(
+                result['mask'], self.scale_factor, interpolation=cv2.INTER_NEAREST)
 
         if self.pad_out_to_modulo is not None and self.pad_out_to_modulo > 1:
-            result['image'] = pad_img_to_modulo(result['image'], self.pad_out_to_modulo)
-            result['mask'] = pad_img_to_modulo(result['mask'], self.pad_out_to_modulo)
+            result['image'] = pad_img_to_modulo(
+                result['image'], self.pad_out_to_modulo)
+            result['mask'] = pad_img_to_modulo(
+                result['mask'], self.pad_out_to_modulo)
         return result

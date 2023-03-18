@@ -30,7 +30,8 @@ def process_images(src_images, indir, outdir, config):
     if config.generator_kind == 'segmentation':
         mask_generator = SegmentationMask(**config.mask_generator_kwargs)
     elif config.generator_kind == 'random':
-        mask_generator_kwargs = OmegaConf.to_container(config.mask_generator_kwargs, resolve=True)
+        mask_generator_kwargs = OmegaConf.to_container(
+            config.mask_generator_kwargs, resolve=True)
         variants_n = mask_generator_kwargs.pop('variants_n', 2)
         mask_generator = MakeManyMasksWrapper(MixedMaskGenerator(**mask_generator_kwargs),
                                               variants_n=variants_n)
@@ -49,16 +50,19 @@ def process_images(src_images, indir, outdir, config):
 
             # scale input image to output resolution and filter smaller images
             if min(image.size) < config.cropping.out_min_size:
-                handle_small_mode = SmallMode(config.cropping.handle_small_mode)
+                handle_small_mode = SmallMode(
+                    config.cropping.handle_small_mode)
                 if handle_small_mode == SmallMode.DROP:
                     continue
                 elif handle_small_mode == SmallMode.UPSCALE:
                     factor = config.cropping.out_min_size / min(image.size)
-                    out_size = (np.array(image.size) * factor).round().astype('uint32')
+                    out_size = (np.array(image.size) *
+                                factor).round().astype('uint32')
                     image = image.resize(out_size, resample=Image.BICUBIC)
             else:
                 factor = config.cropping.out_min_size / min(image.size)
-                out_size = (np.array(image.size) * factor).round().astype('uint32')
+                out_size = (np.array(image.size) *
+                            factor).round().astype('uint32')
                 image = image.resize(out_size, resample=Image.BICUBIC)
 
             # generate and select masks
@@ -72,7 +76,8 @@ def process_images(src_images, indir, outdir, config):
                      crop_right,
                      crop_bottom) = propose_random_square_crop(cur_mask,
                                                                min_overlap=config.cropping.crop_min_overlap)
-                    cur_mask = cur_mask[crop_top:crop_bottom, crop_left:crop_right]
+                    cur_mask = cur_mask[crop_top:crop_bottom,
+                                        crop_left:crop_right]
                     cur_image = image.copy().crop((crop_left, crop_top, crop_right, crop_bottom))
                 else:
                     cur_image = image
@@ -83,11 +88,13 @@ def process_images(src_images, indir, outdir, config):
                 filtered_image_mask_pairs.append((cur_image, cur_mask))
 
             mask_indices = np.random.choice(len(filtered_image_mask_pairs),
-                                            size=min(len(filtered_image_mask_pairs), config.max_masks_per_image),
+                                            size=min(
+                                                len(filtered_image_mask_pairs), config.max_masks_per_image),
                                             replace=False)
 
             # crop masks; save masks together with input image
-            mask_basename = os.path.join(outdir, os.path.splitext(file_relpath)[0])
+            mask_basename = os.path.join(
+                outdir, os.path.splitext(file_relpath)[0])
             for i, idx in enumerate(mask_indices):
                 cur_image, cur_mask = filtered_image_mask_pairs[idx]
                 cur_basename = mask_basename + f'_crop{i:03d}'
@@ -97,7 +104,8 @@ def process_images(src_images, indir, outdir, config):
         except KeyboardInterrupt:
             return
         except Exception as ex:
-            print(f'Could not make masks for {infile} due to {ex}:\n{traceback.format_exc()}')
+            print(
+                f'Could not make masks for {infile} due to {ex}:\n{traceback.format_exc()}')
 
 
 @hydra.main(config_path='../configs/data_gen/whydra', config_name='random_medium_256.yaml')
@@ -113,9 +121,11 @@ def main(config: OmegaConf):
         process_images(in_files, config.indir, config.outdir, config)
     else:
         in_files_n = len(in_files)
-        chunk_size = in_files_n // config.n_jobs + (1 if in_files_n % config.n_jobs > 0 else 0)
+        chunk_size = in_files_n // config.n_jobs + \
+            (1 if in_files_n % config.n_jobs > 0 else 0)
         Parallel(n_jobs=config.n_jobs)(
-            delayed(process_images)(in_files[start:start+chunk_size], config.indir, config.outdir, config)
+            delayed(process_images)(
+                in_files[start:start+chunk_size], config.indir, config.outdir, config)
             for start in range(0, len(in_files), chunk_size)
         )
 

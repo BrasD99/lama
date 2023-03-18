@@ -50,8 +50,6 @@ def main(args):
 
             out_fname = os.path.join(args.outpath, mask_fname)
 
-
-
             vis_img = cv2.cvtColor(vis_img, cv2.COLOR_RGB2BGR)
             cv2.imwrite(out_fname, vis_img)
         except Exception as ex:
@@ -62,15 +60,17 @@ if __name__ == '__main__':
     import argparse
 
     aparser = argparse.ArgumentParser()
-    aparser.add_argument('--max-n', type=int, default=100, help='Maximum number of images to print')
-    aparser.add_argument('--black', action='store_true', help='Whether to fill mask on GT with black')
-    aparser.add_argument('config', type=str, help='Path to evaluation config (e.g. configs/eval1.yaml)')
+    aparser.add_argument('--max-n', type=int, default=100,
+                         help='Maximum number of images to print')
+    aparser.add_argument('--black', action='store_true',
+                         help='Whether to fill mask on GT with black')
+    aparser.add_argument(
+        'config', type=str, help='Path to evaluation config (e.g. configs/eval1.yaml)')
     aparser.add_argument('outpath', type=str, help='Where to put results')
     aparser.add_argument('datadir', type=str,
                          help='Path to folder with images and masks')
     aparser.add_argument('predictdirs', type=str,
                          nargs='+',
                          help='Path to folders with predicts')
-
 
     main(aparser.parse_args())

@@ -8,6 +8,14 @@
 #                       __init__.py                        #
 ############################################################
 
+from torchvision import models as tv
+from collections import namedtuple
+from torch.autograd import Variable
+import torch.nn as nn
+from tqdm import tqdm
+from scipy.ndimage import zoom
+from collections import OrderedDict
+import os
 import numpy as np
 from skimage.metrics import structural_similarity
 import torch
@@ -232,17 +240,13 @@ class BaseModel(torch.nn.Module):
 
     def save_done(self, flag=False):
         np.save(os.path.join(self.save_dir, 'done_flag'), flag)
-        np.savetxt(os.path.join(self.save_dir, 'done_flag'), [flag, ], fmt='%i')
+        np.savetxt(os.path.join(self.save_dir, 'done_flag'),
+                   [flag, ], fmt='%i')
 
 
 ############################################################
 #                      dist_model.py                       #
 ############################################################
-
-import os
-from collections import OrderedDict
-from scipy.ndimage import zoom
-from tqdm import tqdm
 
 
 class DistModel(BaseModel):
@@ -291,12 +295,14 @@ class DistModel(BaseModel):
                     os.path.join(os.path.dirname(__file__), '..', '..', '..', 'models', 'lpips_models', f'{net}.pth'))
 
             if (not is_train):
-                self.net.load_state_dict(torch.load(model_path, **kw), strict=False)
+                self.net.load_state_dict(torch.load(
+                    model_path, **kw), strict=False)
 
         elif (self.model == 'net'):  # pretrained network
             self.net = PNetLin(pnet_rand=pnet_rand, pnet_type=net, lpips=False)
         elif (self.model in ['L2', 'l2']):
-            self.net = L2(use_gpu=use_gpu, colorspace=colorspace)  # not really a network, only for testing
+            # not really a network, only for testing
+            self.net = L2(use_gpu=use_gpu, colorspace=colorspace)
             self.model_name = 'L2'
         elif (self.model in ['DSSIM', 'dssim', 'SSIM', 'ssim']):
             self.net = DSSIM(use_gpu=use_gpu, colorspace=colorspace)
@@ -312,7 +318,8 @@ class DistModel(BaseModel):
             self.trainable_parameters += list(self.rankLoss.net.parameters())
             self.lr = lr
             self.old_lr = lr
-            self.optimizer_net = torch.optim.Adam(self.trainable_parameters, lr=lr, betas=(beta1, 0.999))
+            self.optimizer_net = torch.optim.Adam(
+                self.trainable_parameters, lr=lr, betas=(beta1, 0.999))
         else:  # test mode
             self.net.eval()
 
@@ -378,7 +385,8 @@ class DistModel(BaseModel):
 
         self.var_judge = Variable(1. * self.input_judge).view(self.d0.size())
 
-        self.loss_total = self.rankLoss(self.d0, self.d1, self.var_judge * 2. - 1.)
+        self.loss_total = self.rankLoss(
+            self.d0, self.d1, self.var_judge * 2. - 1.)
 
         return self.loss_total
 
@@ -457,8 +465,10 @@ def score_2afc_dataset(data_loader, func, name=''):
     gts = []
 
     for data in tqdm(data_loader.load_data(), desc=name):
-        d0s += func(data['ref'], data['p0']).data.cpu().numpy().flatten().tolist()
-        d1s += func(data['ref'], data['p1']).data.cpu().numpy().flatten().tolist()
+        d0s += func(data['ref'], data['p0']
+                    ).data.cpu().numpy().flatten().tolist()
+        d1s += func(data['ref'], data['p1']
+                    ).data.cpu().numpy().flatten().tolist()
         gts += data['judge'].cpu().numpy().flatten().tolist()
 
     d0s = np.array(d0s)
@@ -513,10 +523,6 @@ def score_jnd_dataset(data_loader, func, name=''):
 #                    networks_basic.py                     #
 ############################################################
 
-import torch.nn as nn
-from torch.autograd import Variable
-import numpy as np
-
 
 def spatial_average(in_tens, keepdim=True):
     return in_tens.mean([2, 3], keepdim=keepdim)
@@ -554,7 +560,8 @@ class PNetLin(nn.Module):
             self.chns = [64, 128, 256, 384, 384, 512, 512]
         self.L = len(self.chns)
 
-        self.net = net_type(pretrained=not self.pnet_rand, requires_grad=self.pnet_tune)
+        self.net = net_type(pretrained=not self.pnet_rand,
+                            requires_grad=self.pnet_tune)
 
         if (lpips):
             self.lin0 = NetLinLayer(self.chns[0], use_dropout=use_dropout)
@@ -571,24 +578,29 @@ class PNetLin(nn.Module):
     def forward(self, in0, in1, retPerLayer=False):
         # v0.0 - original release had a bug, where input was not scaled
         in0_input, in1_input = (self.scaling_layer(in0), self.scaling_layer(in1)) if self.version == '0.1' else (
-        in0, in1)
+            in0, in1)
         outs0, outs1 = self.net(in0_input), self.net(in1_input)
         feats0, feats1, diffs = {}, {}, {}
 
         for kk in range(self.L):
-            feats0[kk], feats1[kk] = normalize_tensor(outs0[kk]), normalize_tensor(outs1[kk])
+            feats0[kk], feats1[kk] = normalize_tensor(
+                outs0[kk]), normalize_tensor(outs1[kk])
             diffs[kk] = (feats0[kk] - feats1[kk]) ** 2
 
         if (self.lpips):
             if (self.spatial):
-                res = [upsample(self.lins[kk].model(diffs[kk]), out_H=in0.shape[2]) for kk in range(self.L)]
+                res = [upsample(self.lins[kk].model(diffs[kk]),
+                                out_H=in0.shape[2]) for kk in range(self.L)]
             else:
-                res = [spatial_average(self.lins[kk].model(diffs[kk]), keepdim=True) for kk in range(self.L)]
+                res = [spatial_average(self.lins[kk].model(
+                    diffs[kk]), keepdim=True) for kk in range(self.L)]
         else:
             if (self.spatial):
-                res = [upsample(diffs[kk].sum(dim=1, keepdim=True), out_H=in0.shape[2]) for kk in range(self.L)]
+                res = [upsample(diffs[kk].sum(dim=1, keepdim=True),
+                                out_H=in0.shape[2]) for kk in range(self.L)]
             else:
-                res = [spatial_average(diffs[kk].sum(dim=1, keepdim=True), keepdim=True) for kk in range(self.L)]
+                res = [spatial_average(diffs[kk].sum(
+                    dim=1, keepdim=True), keepdim=True) for kk in range(self.L)]
 
         val = res[0]
         for l in range(1, self.L):
@@ -603,8 +615,10 @@ class PNetLin(nn.Module):
 class ScalingLayer(nn.Module):
     def __init__(self):
         super(ScalingLayer, self).__init__()
-        self.register_buffer('shift', torch.Tensor([-.030, -.088, -.188])[None, :, None, None])
-        self.register_buffer('scale', torch.Tensor([.458, .448, .450])[None, :, None, None])
+        self.register_buffer('shift', torch.Tensor(
+            [-.030, -.088, -.188])[None, :, None, None])
+        self.register_buffer('scale', torch.Tensor(
+            [.458, .448, .450])[None, :, None, None])
 
     def forward(self, inp):
         return (inp - self.shift) / self.scale
@@ -617,7 +631,8 @@ class NetLinLayer(nn.Module):
         super(NetLinLayer, self).__init__()
 
         layers = [nn.Dropout(), ] if (use_dropout) else []
-        layers += [nn.Conv2d(chn_in, chn_out, 1, stride=1, padding=0, bias=False), ]
+        layers += [nn.Conv2d(chn_in, chn_out, 1, stride=1,
+                             padding=0, bias=False), ]
         self.model = nn.Sequential(*layers)
 
 
@@ -629,7 +644,8 @@ class Dist2LogitLayer(nn.Module):
 
         layers = [nn.Conv2d(5, chn_mid, 1, stride=1, padding=0, bias=True), ]
         layers += [nn.LeakyReLU(0.2, True), ]
-        layers += [nn.Conv2d(chn_mid, chn_mid, 1, stride=1, padding=0, bias=True), ]
+        layers += [nn.Conv2d(chn_mid, chn_mid, 1, stride=1,
+                             padding=0, bias=True), ]
         layers += [nn.LeakyReLU(0.2, True), ]
         layers += [nn.Conv2d(chn_mid, 1, 1, stride=1, padding=0, bias=True), ]
         if (use_sigmoid):
@@ -686,7 +702,8 @@ class DSSIM(FakeNet):
         assert (in0.size()[0] == 1)  # currently only supports batchSize 1
 
         if (self.colorspace == 'RGB'):
-            value = dssim(1. * tensor2im(in0.data), 1. * tensor2im(in1.data), range=255.).astype('float')
+            value = dssim(1. * tensor2im(in0.data), 1. *
+                          tensor2im(in1.data), range=255.).astype('float')
         elif (self.colorspace == 'Lab'):
             value = dssim(tensor2np(tensor2tensorlab(in0.data, to_norm=False)),
                           tensor2np(tensor2tensorlab(in1.data, to_norm=False)), range=100.).astype('float')
@@ -707,10 +724,6 @@ def print_network(net):
 ############################################################
 #                 pretrained_networks.py                   #
 ############################################################
-
-from collections import namedtuple
-import torch
-from torchvision import models as tv
 
 
 class squeezenet(torch.nn.Module):
@@ -758,8 +771,10 @@ class squeezenet(torch.nn.Module):
         h_relu6 = h
         h = self.slice7(h)
         h_relu7 = h
-        vgg_outputs = namedtuple("SqueezeOutputs", ['relu1', 'relu2', 'relu3', 'relu4', 'relu5', 'relu6', 'relu7'])
-        out = vgg_outputs(h_relu1, h_relu2, h_relu3, h_relu4, h_relu5, h_relu6, h_relu7)
+        vgg_outputs = namedtuple("SqueezeOutputs", [
+                                 'relu1', 'relu2', 'relu3', 'relu4', 'relu5', 'relu6', 'relu7'])
+        out = vgg_outputs(h_relu1, h_relu2, h_relu3,
+                          h_relu4, h_relu5, h_relu6, h_relu7)
 
         return out
 
@@ -767,7 +782,8 @@ class squeezenet(torch.nn.Module):
 class alexnet(torch.nn.Module):
     def __init__(self, requires_grad=False, pretrained=True):
         super(alexnet, self).__init__()
-        alexnet_pretrained_features = tv.alexnet(pretrained=pretrained).features
+        alexnet_pretrained_features = tv.alexnet(
+            pretrained=pretrained).features
         self.slice1 = torch.nn.Sequential()
         self.slice2 = torch.nn.Sequential()
         self.slice3 = torch.nn.Sequential()
@@ -799,7 +815,8 @@ class alexnet(torch.nn.Module):
         h_relu4 = h
         h = self.slice5(h)
         h_relu5 = h
-        alexnet_outputs = namedtuple("AlexnetOutputs", ['relu1', 'relu2', 'relu3', 'relu4', 'relu5'])
+        alexnet_outputs = namedtuple(
+            "AlexnetOutputs", ['relu1', 'relu2', 'relu3', 'relu4', 'relu5'])
         out = alexnet_outputs(h_relu1, h_relu2, h_relu3, h_relu4, h_relu5)
 
         return out
@@ -840,8 +857,10 @@ class vgg16(torch.nn.Module):
         h_relu4_3 = h
         h = self.slice5(h)
         h_relu5_3 = h
-        vgg_outputs = namedtuple("VggOutputs", ['relu1_2', 'relu2_2', 'relu3_3', 'relu4_3', 'relu5_3'])
-        out = vgg_outputs(h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_3)
+        vgg_outputs = namedtuple(
+            "VggOutputs", ['relu1_2', 'relu2_2', 'relu3_3', 'relu4_3', 'relu5_3'])
+        out = vgg_outputs(h_relu1_2, h_relu2_2,
+                          h_relu3_3, h_relu4_3, h_relu5_3)
 
         return out
 
@@ -885,7 +904,8 @@ class resnet(torch.nn.Module):
         h = self.layer4(h)
         h_conv5 = h
 
-        outputs = namedtuple("Outputs", ['relu1', 'conv2', 'conv3', 'conv4', 'conv5'])
+        outputs = namedtuple(
+            "Outputs", ['relu1', 'conv2', 'conv3', 'conv4', 'conv5'])
         out = outputs(h_relu1, h_conv2, h_conv3, h_conv4, h_conv5)
 
         return out

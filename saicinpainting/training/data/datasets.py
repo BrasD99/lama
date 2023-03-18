@@ -24,7 +24,8 @@ LOGGER = logging.getLogger(__name__)
 
 class InpaintingTrainDataset(Dataset):
     def __init__(self, indir, mask_generator, transform):
-        self.in_files = list(glob.glob(os.path.join(indir, '**', '*.jpg'), recursive=True))
+        self.in_files = list(glob.glob(os.path.join(
+            indir, '**', '*.jpg'), recursive=True))
         self.mask_generator = mask_generator
         self.transform = transform
         self.iter_i = 0
@@ -47,7 +48,8 @@ class InpaintingTrainDataset(Dataset):
 
 class InpaintingTrainWebDataset(IterableDataset):
     def __init__(self, indir, mask_generator, transform, shuffle_buffer=200):
-        self.impl = webdataset.Dataset(indir).shuffle(shuffle_buffer).decode('rgb').to_tuple('jpg')
+        self.impl = webdataset.Dataset(indir).shuffle(
+            shuffle_buffer).decode('rgb').to_tuple('jpg')
         self.mask_generator = mask_generator
         self.transform = transform
 
@@ -69,7 +71,8 @@ class ImgSegmentationDataset(Dataset):
         self.transform = transform
         self.out_size = out_size
         self.semantic_seg_n_classes = semantic_seg_n_classes
-        self.in_files = list(glob.glob(os.path.join(indir, '**', '*.jpg'), recursive=True))
+        self.in_files = list(glob.glob(os.path.join(
+            indir, '**', '*.jpg'), recursive=True))
 
     def __len__(self):
         return len(self.in_files)
@@ -82,7 +85,7 @@ class ImgSegmentationDataset(Dataset):
         img = self.transform(image=img)['image']
         img = np.transpose(img, (2, 0, 1))
         mask = self.mask_generator(img)
-        segm, segm_classes= self.load_semantic_segm(path)
+        segm, segm_classes = self.load_semantic_segm(path)
         result = dict(image=img,
                       mask=mask,
                       segm=segm,
@@ -90,11 +93,13 @@ class ImgSegmentationDataset(Dataset):
         return result
 
     def load_semantic_segm(self, img_path):
-        segm_path = img_path.replace(self.indir, self.segm_indir).replace(".jpg", ".png")
+        segm_path = img_path.replace(
+            self.indir, self.segm_indir).replace(".jpg", ".png")
         mask = cv2.imread(segm_path, cv2.IMREAD_GRAYSCALE)
         mask = cv2.resize(mask, (self.out_size, self.out_size))
         tensor = torch.from_numpy(np.clip(mask.astype(int)-1, 0, None))
-        ohe = F.one_hot(tensor.long(), num_classes=self.semantic_seg_n_classes) # w x h x n_classes
+        # w x h x n_classes
+        ohe = F.one_hot(tensor.long(), num_classes=self.semantic_seg_n_classes)
         return ohe.permute(2, 0, 1).float(), tensor.unsqueeze(0)
 
 
@@ -106,8 +111,10 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'distortions':
@@ -121,8 +128,10 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'distortions_scale05_1':
@@ -137,8 +146,10 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'distortions_scale03_12':
@@ -153,8 +164,10 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'distortions_scale03_07':
@@ -169,8 +182,10 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'distortions_light':
@@ -183,15 +198,19 @@ def get_transforms(transform_variant, out_size):
             A.RandomCrop(height=out_size, width=out_size),
             A.HorizontalFlip(),
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'non_space_transform':
         transform = A.Compose([
             A.CLAHE(),
-            A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2),
-            A.HueSaturationValue(hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.2, contrast_limit=0.2),
+            A.HueSaturationValue(
+                hue_shift_limit=5, sat_shift_limit=30, val_shift_limit=5),
             A.ToFloat()
         ])
     elif transform_variant == 'no_augs':
@@ -205,9 +224,11 @@ def get_transforms(transform_variant, out_size):
 
 def make_default_train_dataloader(indir, kind='default', out_size=512, mask_gen_kwargs=None, transform_variant='default',
                                   mask_generator_kind="mixed", dataloader_kwargs=None, ddp_kwargs=None, **kwargs):
-    LOGGER.info(f'Make train dataloader {kind} from {indir}. Using mask generator={mask_generator_kind}')
+    LOGGER.info(
+        f'Make train dataloader {kind} from {indir}. Using mask generator={mask_generator_kind}')
 
-    mask_generator = get_mask_generator(kind=mask_generator_kind, kwargs=mask_gen_kwargs)
+    mask_generator = get_mask_generator(
+        kind=mask_generator_kind, kwargs=mask_gen_kwargs)
     transform = get_transforms(transform_variant, out_size)
 
     if kind == 'default':
@@ -236,7 +257,8 @@ def make_default_train_dataloader(indir, kind='default', out_size=512, mask_gen_
 
     if ddp_kwargs is not None and not is_dataset_only_iterable:
         dataloader_kwargs['shuffle'] = False
-        dataloader_kwargs['sampler'] = DistributedSampler(dataset, **ddp_kwargs)
+        dataloader_kwargs['sampler'] = DistributedSampler(
+            dataset, **ddp_kwargs)
 
     if is_dataset_only_iterable and 'shuffle' in dataloader_kwargs:
         with open_dict(dataloader_kwargs):
@@ -249,11 +271,12 @@ def make_default_train_dataloader(indir, kind='default', out_size=512, mask_gen_
 def make_default_val_dataset(indir, kind='default', out_size=512, transform_variant='default', **kwargs):
     if OmegaConf.is_list(indir) or isinstance(indir, (tuple, list)):
         return ConcatDataset([
-            make_default_val_dataset(idir, kind=kind, out_size=out_size, transform_variant=transform_variant, **kwargs) for idir in indir 
+            make_default_val_dataset(idir, kind=kind, out_size=out_size, transform_variant=transform_variant, **kwargs) for idir in indir
         ])
 
     LOGGER.info(f'Make val dataloader {kind} from {indir}')
-    mask_generator = get_mask_generator(kind=kwargs.get("mask_generator_kind"), kwargs=kwargs.get("mask_gen_kwargs"))
+    mask_generator = get_mask_generator(kind=kwargs.get(
+        "mask_generator_kind"), kwargs=kwargs.get("mask_gen_kwargs"))
 
     if transform_variant is not None:
         transform = get_transforms(transform_variant, out_size)
@@ -293,11 +316,15 @@ def make_constant_area_crop_params(img_height, img_width, min_size=128, max_size
     min_size = min(img_height, img_width, min_size)
     max_size = min(img_height, img_width, max_size)
     if random.random() < 0.5:
-        out_height = min(max_size, ceil_modulo(random.randint(min_size, max_size), round_to_mod))
-        out_width = min(max_size, ceil_modulo(area // out_height, round_to_mod))
+        out_height = min(max_size, ceil_modulo(
+            random.randint(min_size, max_size), round_to_mod))
+        out_width = min(max_size, ceil_modulo(
+            area // out_height, round_to_mod))
     else:
-        out_width = min(max_size, ceil_modulo(random.randint(min_size, max_size), round_to_mod))
-        out_height = min(max_size, ceil_modulo(area // out_width, round_to_mod))
+        out_width = min(max_size, ceil_modulo(
+            random.randint(min_size, max_size), round_to_mod))
+        out_height = min(max_size, ceil_modulo(
+            area // out_width, round_to_mod))
 
     start_y = random.randint(0, img_height - out_height)
     start_x = random.randint(0, img_width - out_width)

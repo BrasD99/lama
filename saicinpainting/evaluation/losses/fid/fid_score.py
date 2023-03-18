@@ -234,7 +234,8 @@ def calculate_activation_statistics(files, model, batch_size=50,
     -- sigma : The covariance matrix of the activations of the pool_3 layer of
                the inception model.
     """
-    act = get_activations(files, model, batch_size, dims, cuda, verbose, keep_size=keep_size)
+    act = get_activations(files, model, batch_size, dims,
+                          cuda, verbose, keep_size=keep_size)
     mu = np.mean(act, axis=0)
     sigma = np.cov(act, rowvar=False)
     return mu, sigma
@@ -310,9 +311,9 @@ def calculate_fid_given_images(images, batch_size, cuda, dims, use_globals=False
         model = FID_MODEL
 
     m1, s1 = _compute_statistics_of_images(images[0], model, batch_size,
-                                        dims, cuda, keep_size=False)
+                                           dims, cuda, keep_size=False)
     m2, s2 = _compute_statistics_of_images(images[1], model, batch_size,
-                                        dims, cuda, keep_size=False)
+                                           dims, cuda, keep_size=False)
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
     return fid_value
 

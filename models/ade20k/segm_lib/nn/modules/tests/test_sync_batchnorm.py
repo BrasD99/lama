@@ -3,7 +3,7 @@
 # Author : Jiayuan Mao
 # Email  : maojiayuan@gmail.com
 # Date   : 27/01/2018
-# 
+#
 # This file is part of Synchronized-BatchNorm-PyTorch.
 
 import unittest
@@ -61,8 +61,10 @@ class SyncTestCase(TorchTestCase):
         self.assertTensorClose(input1.data, input2.data)
         self.assertTensorClose(output1.data, output2.data)
         self.assertTensorClose(input1.grad, input2.grad)
-        self.assertTensorClose(_find_bn(bn1).running_mean, _find_bn(bn2).running_mean)
-        self.assertTensorClose(_find_bn(bn1).running_var, _find_bn(bn2).running_var)
+        self.assertTensorClose(_find_bn(bn1).running_mean,
+                               _find_bn(bn2).running_mean)
+        self.assertTensorClose(_find_bn(bn1).running_var,
+                               _find_bn(bn2).running_var)
 
     def testSyncBatchNormNormalTrain(self):
         bn = nn.BatchNorm1d(10)
@@ -84,7 +86,8 @@ class SyncTestCase(TorchTestCase):
         bn.cuda()
         sync_bn.cuda()
 
-        self._checkBatchNormResult(bn, sync_bn, torch.rand(16, 10), True, cuda=True)
+        self._checkBatchNormResult(
+            bn, sync_bn, torch.rand(16, 10), True, cuda=True)
 
     def testSyncBatchNormSyncEval(self):
         bn = nn.BatchNorm1d(10, eps=1e-5, affine=False)
@@ -94,7 +97,8 @@ class SyncTestCase(TorchTestCase):
         bn.cuda()
         sync_bn.cuda()
 
-        self._checkBatchNormResult(bn, sync_bn, torch.rand(16, 10), False, cuda=True)
+        self._checkBatchNormResult(
+            bn, sync_bn, torch.rand(16, 10), False, cuda=True)
 
     def testSyncBatchNorm2DSyncTrain(self):
         bn = nn.BatchNorm2d(10)
@@ -104,7 +108,8 @@ class SyncTestCase(TorchTestCase):
         bn.cuda()
         sync_bn.cuda()
 
-        self._checkBatchNormResult(bn, sync_bn, torch.rand(16, 10, 16, 16), True, cuda=True)
+        self._checkBatchNormResult(
+            bn, sync_bn, torch.rand(16, 10, 16, 16), True, cuda=True)
 
 
 if __name__ == '__main__':
